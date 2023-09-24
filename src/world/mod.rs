@@ -19,7 +19,8 @@ fn spawn_floor(
     let floor = (
         PbrBundle {
             mesh: meshes.add(Mesh::from(shape::Plane::from_size(15.0))),
-            material: materials.add(Color::DARK_GREEN.into()),
+            material: materials.add(Color::GRAY.into()),
+            transform: Transform::from_xyz(0.0, -0.5, 0.0),
             ..default()
         },
         Name::new("Floor"),
@@ -50,12 +51,13 @@ fn spawn_objects(
         3.0,
         Color::RED,
         "Red Cube".to_string(),
-        (-4.5, 1.5, -4.5),
+        (-4.5, 1.0, -4.5),
     ));
     commands.spawn(create_obj(
         2.0,
         Color::MIDNIGHT_BLUE,
         "Blue Cube".to_string(),
-        (5.3, 1.0, 5.7),
+        (5.3, 0.5, 5.7),
     ));
 }
+

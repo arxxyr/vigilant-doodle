@@ -1,7 +1,6 @@
 use crate::loading::FontAssets;
 use crate::GameState;
-use bevy::{core_pipeline::bloom::BloomSettings, prelude::*};
-use bevy_third_person_camera::{ThirdPersonCamera, Zoom};
+use bevy::prelude::*;
 
 pub struct MenuPlugin;
 
@@ -36,21 +35,7 @@ fn setup_menu(
     font_assets: Res<FontAssets>,
     button_colors: Res<ButtonColors>,
 ) {
-    commands.spawn((
-        Camera3dBundle {
-            transform: Transform::from_xyz(-2.0, 2.5, 5.0).looking_at(Vec3::ZERO, Vec3::Y),
-            ..default()
-        },
-        BloomSettings {
-            intensity: 0.25, // the default is 0.3
-            ..default()
-        },
-        ThirdPersonCamera {
-            zoom: Zoom::new(1.5, 5.0),
-            // zoom_sensitivity: 1.0,
-            ..Default::default()
-        },
-    ));
+    commands.spawn(Camera2dBundle::default());
     commands
         .spawn(ButtonBundle {
             style: Style {
@@ -99,6 +84,13 @@ fn click_play_button(
     }
 }
 
-fn cleanup_menu(mut commands: Commands, button: Query<Entity, With<Button>>) {
+fn cleanup_menu(
+    mut commands: Commands,
+    button: Query<Entity, With<Button>>,
+    menu_camera: Query<Entity, With<Camera2d>>,
+    // notice_text: Query<Entity, With<TextBundle>>,
+) {
     commands.entity(button.single()).despawn_recursive();
+    commands.entity(menu_camera.single()).despawn_recursive();
+    // commands.entity(notice_text.single()).despawn_recursive();
 }
