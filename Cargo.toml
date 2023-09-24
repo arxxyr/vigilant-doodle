@@ -1,8 +1,8 @@
 [package]
-name = "bevy_game" # ToDo
+name = "vigilant_doodle" # ToDo
 version = "0.1.0"
 publish = false
-authors = ["Niklas Eicker <git@nikl.me>"] # ToDo: you are the author ;)
+authors = ["ffqi <ffqi@outlook.com>"] # ToDo: you are the author ;)
 edition = "2021"
 exclude = ["dist", "build", "assets", "credits"]
 
@@ -25,9 +25,7 @@ inherits = "release"
 lto = "thin"
 
 [features]
-dev = [
-    "bevy/bevy_dylib",
-]
+dev = ["bevy/bevy_dylib"]
 
 [dependencies]
 bevy = { version = "0.11", default-features = false, features = [
@@ -58,6 +56,7 @@ rand = { version = "0.8.3" }
 # keep the following in sync with Bevy's dependencies
 winit = { version = "0.28", default-features = false }
 image = { version = "0.24", default-features = false }
+bevy_third_person_camera = "0.1.5"
 
 [build-dependencies]
-embed-resource = "1.4"
+embed-resource = "1.6.3"
