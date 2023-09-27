@@ -3,14 +3,12 @@
 
 use bevy::{
     prelude::*,
-    window::{PrimaryWindow,PresentMode, WindowLevel, WindowTheme},
+    window::{PrimaryWindow, WindowLevel, WindowTheme},
     winit::WinitWindows,
 };
 use std::io::Cursor;
 use vigilant_doodle::GamePlugin; // ToDo: Replace vigilant_doodle with your new crate name.
 use winit::window::Icon;
-use bevy_third_person_camera::ThirdPersonCameraPlugin;
-use bevy_inspector_egui::quick::WorldInspectorPlugin;
 
 fn main() {
     App::new()
@@ -32,9 +30,8 @@ fn main() {
             ..default()
         }))
         .add_plugins(GamePlugin)
-        .add_plugins(ThirdPersonCameraPlugin)
-        // .add_plugins(WorldInspectorPlugin::new())
         .add_systems(PreStartup, set_window_icon)
+        .add_systems(Update, bevy::window::close_on_esc)
         .run();
 }
 
