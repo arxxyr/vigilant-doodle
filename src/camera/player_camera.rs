@@ -10,6 +10,7 @@ impl Plugin for PlayerCameraPlugin {
         app.add_systems(OnEnter(GameState::Loading), spawn_camera)
             .add_systems(OnEnter(GameState::Playing), bind_player)
             .add_systems(Update, update_camera.run_if(in_state(GameState::Playing)))
+            // .add_systems(Update, update_camera)
             .add_systems(OnExit(GameState::Playing), reset_cursor);
     }
 }

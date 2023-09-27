@@ -11,7 +11,7 @@ pub struct MenuPlugin;
 impl Plugin for MenuPlugin {
     fn build(&self, app: &mut App) {
         app.add_state::<MenuState>()
-            .init_resource::<ButtonColors>()
+            // .init_resource::<ButtonColors>()
             .insert_resource(DisplayQuality::Medium)
             .insert_resource(Volume(7))
             .add_systems(OnEnter(GameState::Menu), setup_menu)
@@ -64,20 +64,20 @@ impl Plugin for MenuPlugin {
     // }
 }
 
-#[derive(Resource)]
-struct ButtonColors {
-    normal: Color,
-    hovered: Color,
-}
+// #[derive(Resource)]
+// struct ButtonColors {
+//     normal: Color,
+//     hovered: Color,
+// }
 
-impl Default for ButtonColors {
-    fn default() -> Self {
-        ButtonColors {
-            normal: Color::rgb(0.15, 0.15, 0.15),
-            hovered: Color::rgb(0.25, 0.25, 0.25),
-        }
-    }
-}
+// impl Default for ButtonColors {
+//     fn default() -> Self {
+//         ButtonColors {
+//             normal: Color::rgb(0.15, 0.15, 0.15),
+//             hovered: Color::rgb(0.25, 0.25, 0.25),
+//         }
+//     }
+// }
 
 // State used for the current menu screen
 #[derive(Clone, Copy, Default, Eq, PartialEq, Debug, Hash, States)]
@@ -284,8 +284,6 @@ fn main_menu_setup(
         font_size: 40.0,
         color: Color::rgb(0.9, 0.9, 0.9),
     };
-
-    let test_color = Color::rgb(0.9, 0.9, 0.9);
 
     let button_icon_style = Style {
         width: Val::Px(30.0),
