@@ -19,6 +19,8 @@ pub struct Speed(f32);
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(OnEnter(GameState::Loading), spawn_player)
+            .add_systems(OnEnter(GameState::Playing), show_player)
+            .add_systems(OnExit(GameState::Playing), hide_player)
             .add_systems(Update, move_player.run_if(in_state(GameState::Playing)));
     }
 }
@@ -44,6 +46,7 @@ fn spawn_player(mut commands: Commands, assets: Res<AssetServer>) {
         SceneBundle {
             scene: assets.load("model/Player.gltf#Scene0"),
             transform: Transform::from_xyz(0.0, 0.0, 0.0),
+            visibility: Visibility::Hidden,
             ..default()
         },
         Player,
@@ -55,6 +58,18 @@ fn spawn_player(mut commands: Commands, assets: Res<AssetServer>) {
     commands.spawn(player).with_children(|parent| {
         parent.spawn(flashlight);
     });
+}
+
+fn show_player(mut commands: Commands, mut player: Query<Entity, With<Player>>) {
+    for entity in &mut player {
+        commands.entity(entity).insert(Visibility::Visible);
+    }
+}
+
+fn hide_player(mut commands: Commands, mut player: Query<Entity, With<Player>>) {
+    for entity in &mut player {
+        commands.entity(entity).insert(Visibility::Hidden);
+    }
 }
 
 fn move_player(
