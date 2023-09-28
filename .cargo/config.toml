@@ -1,0 +1,16 @@
+[target.x86_64-unknown-linux-gnu]
+linker = "/usr/bin/clang"
+rustflags = ["-Clink-arg=-fuse-ld=lld", "-Zshare-generics=y"]
+
+# NOTE: you must manually install https://github.com/michaeleisel/zld on mac. you can easily do this with the "brew" package manager:
+# `brew install michaeleisel/zld/zld`
+[target.x86_64-apple-darwin]
+rustflags = ["-C", "link-arg=-fuse-ld=/usr/local/bin/zld", "-Zshare-generics=y"]
+
+[target.x86_64-pc-windows-msvc]
+# nightly rustc on windows supports lld, use `rustup toolchain install nightly` to install it 
+# then use `rustup default nightly` to use it by default, and `rustup default stable` to go back to stable
+# then use `cargo install -f cargo-binutils` to install rust-lld
+# then use `rustup component add llvm-tools-preview` to install llvm tools
+linker = "rust-lld.exe"
+rustflags = ["-Zshare-generics=n"]
