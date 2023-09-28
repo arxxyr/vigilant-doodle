@@ -3,9 +3,14 @@ use bevy::prelude::*;
 use crate::GameState;
 pub struct WorldPlugin;
 
+#[derive(Component)]
+pub struct Floor(f32);
+
+pub const FLOOR_SIZE: f32 = 100.0;
+
 impl Plugin for WorldPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(OnEnter(GameState::Playing), (spawn_floor, spawn_objects));
+        app.add_systems(OnEnter(GameState::Loading), (spawn_floor, spawn_objects));
     }
 }
 
@@ -16,12 +21,13 @@ pub fn spawn_floor(
 ) {
     let floor = (
         PbrBundle {
-            mesh: meshes.add(Mesh::from(shape::Plane::from_size(150.0))),
+            mesh: meshes.add(Mesh::from(shape::Plane::from_size(FLOOR_SIZE))),
             material: materials.add(Color::GRAY.into()),
             transform: Transform::from_xyz(0.0, -0.5, 0.0),
             ..default()
         },
-        Name::new("Floor"),
+        Name::new("floor"),
+        Floor(FLOOR_SIZE),
     );
 
     commands.spawn(floor);

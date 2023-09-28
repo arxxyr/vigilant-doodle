@@ -1,5 +1,6 @@
 use crate::actions::Actions;
 
+use crate::world::world::FLOOR_SIZE;
 use crate::GameState;
 // use bevy_third_person_camera::ThirdPersonCameraTarget;
 
@@ -21,7 +22,13 @@ impl Plugin for PlayerPlugin {
         app.add_systems(OnEnter(GameState::Loading), spawn_player)
             .add_systems(OnEnter(GameState::Playing), show_player)
             .add_systems(OnExit(GameState::Playing), hide_player)
-            .add_systems(Update, move_player.run_if(in_state(GameState::Playing)));
+            .add_systems(Update, move_player.run_if(in_state(GameState::Playing)))
+            .add_systems(
+                Update,
+                collision_detection
+                    .run_if(in_state(GameState::Playing))
+                    .after(move_player),
+            );
     }
 }
 
@@ -104,6 +111,23 @@ fn move_player(
                 },
                 Vec3::Y,
             );
+        }
+    }
+}
+
+fn collision_detection(mut player_query: Query<&mut Transform, With<Player>>) {
+    if let Ok(mut player_transform) = player_query.get_single_mut() {
+        if player_transform.translation.x > (FLOOR_SIZE - 2.0) / 2.0 {
+            player_transform.translation.x = (FLOOR_SIZE - 2.0) / 2.0 - 0.2;
+        }
+        if player_transform.translation.x < -(FLOOR_SIZE - 2.0) / 2.0 {
+            player_transform.translation.x = -(FLOOR_SIZE - 2.0) / 2.0 + 0.2;
+        }
+        if player_transform.translation.z > (FLOOR_SIZE - 2.0) / 2.0 {
+            player_transform.translation.z = (FLOOR_SIZE - 2.0) / 2.0 - 0.2;
+        }
+        if player_transform.translation.z < -(FLOOR_SIZE - 2.0) / 2.0 {
+            player_transform.translation.z = -(FLOOR_SIZE - 2.0) / 2.0 + 0.2;
         }
     }
 }

@@ -64,7 +64,7 @@ impl Plugin for GamePlugin {
             InternalAudioPlugin,
             PlayerPlugin,
             ThirdPersonCameraPlugin,
-            // WorldInspectorPlugin::new(),
+            WorldInspectorPlugin::new(),
         ));
 
         #[cfg(debug_assertions)]
