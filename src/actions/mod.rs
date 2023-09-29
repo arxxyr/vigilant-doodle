@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 
 use crate::actions::game_control::{get_movement, GameControl};
-use crate::player::Player;
+use crate::player::player::Player;
 use crate::GameState;
 
 mod game_control;

@@ -1,11 +1,11 @@
 #![allow(clippy::type_complexity)]
 
-use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use bevy_third_person_camera::ThirdPersonCameraPlugin;
 
 mod actions;
 mod audio;
 mod camera;
+mod enemies;
 mod loading;
 mod menu;
 mod player;
@@ -15,15 +15,19 @@ use crate::actions::ActionsPlugin;
 use crate::audio::InternalAudioPlugin;
 use crate::loading::LoadingPlugin;
 use crate::menu::MenuPlugin;
-use crate::player::PlayerPlugin;
+use crate::player::player::PlayerPlugin;
 // 从 `world` 模块中引入 `WorldPlugin`
 use crate::camera::player_camera::PlayerCameraPlugin;
+use crate::enemies::enemies::EnemiesPlugin;
 use crate::world::world::WorldPlugin;
 
 use bevy::app::App;
+use bevy::prelude::*;
+
 #[cfg(debug_assertions)]
 use bevy::diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin};
-use bevy::prelude::*;
+#[cfg(debug_assertions)]
+use bevy_inspector_egui::quick::WorldInspectorPlugin;
 
 // This example game uses States to separate logic
 // See https://bevy-cheatbook.github.io/programming/states.html
@@ -63,7 +67,9 @@ impl Plugin for GamePlugin {
             PlayerCameraPlugin,
             InternalAudioPlugin,
             PlayerPlugin,
+            EnemiesPlugin,
             ThirdPersonCameraPlugin,
+            #[cfg(debug_assertions)]
             WorldInspectorPlugin::new(),
         ));
 

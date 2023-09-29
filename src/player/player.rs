@@ -1,6 +1,6 @@
 use crate::actions::Actions;
 
-use crate::world::world::FLOOR_SIZE;
+use crate::world::world::{FLOOR_LENGTH, FLOOR_WIDTH};
 use crate::GameState;
 // use bevy_third_person_camera::ThirdPersonCameraTarget;
 
@@ -36,28 +36,31 @@ fn spawn_player(mut commands: Commands, assets: Res<AssetServer>) {
     let flashlight = (
         SpotLightBundle {
             spot_light: SpotLight {
-                color: Color::rgba(1.0, 1.0, 0.47, 1.0),
-                range: 100.0,
-                intensity: 7000.0,
-                outer_angle: 0.6,
-                inner_angle: 0.4,
+                color: Color::YELLOW_GREEN,
+                range: 1000.0,
+                intensity: 15000.0,
+                outer_angle: 0.7,
+                inner_angle: 0.3,
                 shadows_enabled: true,
                 ..default()
             },
-            transform: Transform::from_xyz(0.083, -0.093, -0.50),
+            // transform: Transform::from_xyz(0.083, -0.093, -0.50),
+            transform: Transform::from_xyz(0.0, 30.0, 0.0).looking_at(Vec3::ZERO, Vec3::Y),
+            // transform: Transform::from_rotation(Quat::from_rotation_x(std::f32::consts::PI/2.0)),
+            // transform: light_trans.look_at(Vec3::ZERO, Vec3::Y),
             ..default()
         },
         Name::new("FlashLight"),
     );
     let player = (
         SceneBundle {
-            scene: assets.load("model/Player.gltf#Scene0"),
+            scene: assets.load("model/player.glb#Scene0"),
             transform: Transform::from_xyz(0.0, 0.0, 0.0),
             visibility: Visibility::Hidden,
             ..default()
         },
         Player,
-        Speed(15.0),
+        Speed(10.0),
         // ThirdPersonCameraTarget,
         Name::new("XiaoYu"),
     );
@@ -117,17 +120,17 @@ fn move_player(
 
 fn collision_detection(mut player_query: Query<&mut Transform, With<Player>>) {
     if let Ok(mut player_transform) = player_query.get_single_mut() {
-        if player_transform.translation.x > (FLOOR_SIZE - 2.0) / 2.0 {
-            player_transform.translation.x = (FLOOR_SIZE - 2.0) / 2.0 - 0.2;
+        if player_transform.translation.x > (FLOOR_LENGTH - 2.0) / 2.0 {
+            player_transform.translation.x = (FLOOR_LENGTH - 2.0) / 2.0 - 0.2;
         }
-        if player_transform.translation.x < -(FLOOR_SIZE - 2.0) / 2.0 {
-            player_transform.translation.x = -(FLOOR_SIZE - 2.0) / 2.0 + 0.2;
+        if player_transform.translation.x < -(FLOOR_LENGTH - 2.0) / 2.0 {
+            player_transform.translation.x = -(FLOOR_LENGTH - 2.0) / 2.0 + 0.2;
         }
-        if player_transform.translation.z > (FLOOR_SIZE - 2.0) / 2.0 {
-            player_transform.translation.z = (FLOOR_SIZE - 2.0) / 2.0 - 0.2;
+        if player_transform.translation.z > (FLOOR_WIDTH - 2.0) / 2.0 {
+            player_transform.translation.z = (FLOOR_WIDTH - 2.0) / 2.0 - 0.2;
         }
-        if player_transform.translation.z < -(FLOOR_SIZE - 2.0) / 2.0 {
-            player_transform.translation.z = -(FLOOR_SIZE - 2.0) / 2.0 + 0.2;
+        if player_transform.translation.z < -(FLOOR_WIDTH - 2.0) / 2.0 {
+            player_transform.translation.z = -(FLOOR_WIDTH - 2.0) / 2.0 + 0.2;
         }
     }
 }
