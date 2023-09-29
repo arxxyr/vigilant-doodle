@@ -2,6 +2,7 @@ use crate::actions::Actions;
 
 use crate::world::world::{FLOOR_LENGTH, FLOOR_WIDTH};
 use crate::GameState;
+use crate::MovementSystem;
 // use bevy_third_person_camera::ThirdPersonCameraTarget;
 
 use bevy::prelude::*;
@@ -22,12 +23,12 @@ impl Plugin for PlayerPlugin {
         app.add_systems(OnEnter(GameState::Loading), spawn_player)
             .add_systems(OnEnter(GameState::Playing), show_player)
             .add_systems(OnExit(GameState::Playing), hide_player)
-            .add_systems(Update, move_player.run_if(in_state(GameState::Playing)))
             .add_systems(
                 Update,
-                collision_detection
-                    .run_if(in_state(GameState::Playing))
-                    .after(move_player),
+                (move_player, player_collision_detection)
+                    .chain()
+                    .in_set(MovementSystem::PlayerMovement)
+                    .run_if(in_state(GameState::Playing)),
             );
     }
 }
@@ -70,14 +71,14 @@ fn spawn_player(mut commands: Commands, assets: Res<AssetServer>) {
     });
 }
 
-fn show_player(mut commands: Commands, mut player: Query<Entity, With<Player>>) {
-    for entity in &mut player {
+fn show_player(mut commands: Commands, player: Query<Entity, With<Player>>) {
+    for entity in player.iter() {
         commands.entity(entity).insert(Visibility::Visible);
     }
 }
 
-fn hide_player(mut commands: Commands, mut player: Query<Entity, With<Player>>) {
-    for entity in &mut player {
+fn hide_player(mut commands: Commands, player: Query<Entity, With<Player>>) {
+    for entity in player.iter() {
         commands.entity(entity).insert(Visibility::Hidden);
     }
 }
@@ -91,7 +92,7 @@ fn move_player(
         return;
     }
 
-    for (mut player_transform, player_speed) in &mut player_query {
+    if let Ok((mut player_transform, player_speed)) = player_query.get_single_mut() {
         let movement = Vec3::new(
             actions.player_movement.unwrap().x * player_speed.0 * time.delta_seconds(),
             (actions.player_movement.unwrap().y * player_speed.0 - 9.81 * time.delta_seconds())
@@ -118,7 +119,7 @@ fn move_player(
     }
 }
 
-fn collision_detection(mut player_query: Query<&mut Transform, With<Player>>) {
+fn player_collision_detection(mut player_query: Query<&mut Transform, With<Player>>) {
     if let Ok(mut player_transform) = player_query.get_single_mut() {
         if player_transform.translation.x > (FLOOR_LENGTH - 2.0) / 2.0 {
             player_transform.translation.x = (FLOOR_LENGTH - 2.0) / 2.0 - 0.2;

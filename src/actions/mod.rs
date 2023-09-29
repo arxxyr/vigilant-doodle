@@ -2,7 +2,7 @@ use bevy::prelude::*;
 
 use crate::actions::game_control::{get_movement, GameControl};
 use crate::player::player::Player;
-use crate::GameState;
+use crate::{GameState, MovementSystem};
 
 mod game_control;
 
@@ -14,7 +14,9 @@ impl Plugin for ActionsPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<Actions>().add_systems(
             Update,
-            set_movement_actions.run_if(in_state(GameState::Playing)),
+            set_movement_actions
+                .in_set(MovementSystem::Input)
+                .run_if(in_state(GameState::Playing)),
         );
     }
 }
@@ -27,10 +29,6 @@ pub struct Actions {
 pub fn set_movement_actions(
     mut actions: ResMut<Actions>,
     keyboard_input: Res<Input<KeyCode>>,
-    // mut third_camera: Query<&mut ThirdPersonCamera, (With<ThirdPersonCamera>, Without<Player>)>,
-    // mut game_state: ResMut<NextState<GameState>>,
-    // touch_input: Res<Touches>,
-    // player: Query<(&mut Transform, &Speed), With<Player>>,
     camera: Query<&Transform, (With<Camera3d>, Without<Player>)>,
 ) {
     // for (mut player_transform, player_speed) in player.iter_mut() {

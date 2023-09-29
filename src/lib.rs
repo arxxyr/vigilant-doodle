@@ -43,6 +43,22 @@ pub enum GameState {
     Menu,
 }
 
+/// A group of related system sets, used for controlling the order of systems. Systems can be
+/// added to any number of sets.
+#[derive(SystemSet, Debug, Hash, PartialEq, Eq, Clone)]
+enum MovementSystem {
+    /// everything that handles input
+    Input,
+    /// everything that updates player state
+    Player,
+    Enemy,
+    /// everything that moves things (works with transforms)
+    PlayerMovement,
+    EnemyMovement,
+    /// systems that update the world map
+    Map,
+}
+
 // One of the two settings that can be set through the menu. It will be a resource in the app
 #[derive(Resource, Debug, Component, PartialEq, Eq, Clone, Copy)]
 enum DisplayQuality {
@@ -59,19 +75,32 @@ pub struct GamePlugin;
 
 impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
-        app.add_state::<GameState>().add_plugins((
-            LoadingPlugin,
-            MenuPlugin,
-            ActionsPlugin,
-            WorldPlugin,
-            PlayerCameraPlugin,
-            InternalAudioPlugin,
-            PlayerPlugin,
-            EnemiesPlugin,
-            ThirdPersonCameraPlugin,
-            #[cfg(debug_assertions)]
-            WorldInspectorPlugin::new(),
-        ));
+        app.add_state::<GameState>()
+            .configure_sets(
+                Update,
+                (
+                    MovementSystem::Input,
+                    MovementSystem::Player,
+                    MovementSystem::Enemy,
+                    MovementSystem::PlayerMovement,
+                    MovementSystem::EnemyMovement,
+                    MovementSystem::Map,
+                )
+                    .chain(),
+            )
+            .add_plugins((
+                LoadingPlugin,
+                MenuPlugin,
+                ActionsPlugin,
+                WorldPlugin,
+                PlayerCameraPlugin,
+                InternalAudioPlugin,
+                PlayerPlugin,
+                EnemiesPlugin,
+                ThirdPersonCameraPlugin,
+                #[cfg(debug_assertions)]
+                WorldInspectorPlugin::new(),
+            ));
 
         #[cfg(debug_assertions)]
         {
