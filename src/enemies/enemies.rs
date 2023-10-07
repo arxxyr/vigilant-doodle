@@ -21,7 +21,6 @@ impl Plugin for EnemiesPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(OnEnter(GameState::Loading), genarate_enemies)
             .add_systems(OnEnter(GameState::Playing), show_enemies)
-            // .add_systems(Update, update_camera.run_if(in_state(GameState::Playing)))
             .add_systems(
                 Update,
                 (update_player, enemies_movement, enemy_collision_detection)
@@ -74,27 +73,27 @@ fn update_player(
         Err(e) => panic!("Error getting player transform: {}", e),
     };
 
-    for mut enemy_target in &mut query_enemies.iter_mut() {
+    query_enemies.for_each_mut(|mut enemy_target| {
         enemy_target.0 = player_transform.translation;
-    }
+    });
 }
 
 fn enemies_movement(
     time: Res<Time>,
     mut query_enemies: Query<(&mut Transform, &EnemySpeed, &EnemyTarget), With<Enemy>>,
 ) {
-    for (mut transform, enemy_speed, enemy_target) in &mut query_enemies.iter_mut() {
+    query_enemies.for_each_mut(|(mut transform, enemy_speed, enemy_target)| {
         let mut direction = Vec3::ZERO;
-        // 距离player 1.5米时停止移动
-        if (enemy_target.0 - transform.translation).length() < 1.5 {
-            continue;
+        // 距离player 1.0米时停止移动
+        if (enemy_target.0 - transform.translation).length() < 1.0 {
+            return;
         }
         direction += enemy_target.0 - transform.translation;
         direction.y = 0.;
         direction = direction.normalize();
         transform.translation += direction * enemy_speed.0 * time.delta_seconds();
         transform.look_at(enemy_target.0, Vec3::Y);
-    }
+    });
 }
 
 fn enemy_collision_detection(mut player_query: Query<&mut Transform, With<Enemy>>) {
