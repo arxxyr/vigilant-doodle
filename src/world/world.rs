@@ -1,4 +1,6 @@
 use bevy::prelude::*;
+use bevy::color::palettes::css::GRAY;
+use bevy_state::prelude::*;
 
 use crate::GameState;
 pub struct WorldPlugin;
@@ -33,13 +35,14 @@ pub fn spawn_floor(
 ) {
     let floor = (
         PbrBundle {
-            mesh: meshes.add(Mesh::from(shape::Plane {
-                size: 1.0,
-                subdivisions: 1,
-            })),
-            material: materials.add(Color::GRAY.into()),
+            mesh: meshes.add(
+                Plane3d::default()
+                    .mesh()
+                    .size(FLOOR_LENGTH, FLOOR_WIDTH)
+                    .build()
+            ),
+            material: materials.add(Color::from(GRAY)),
             transform: Transform {
-                scale: Vec3::new(FLOOR_LENGTH, 1.0, FLOOR_WIDTH),
                 translation: Vec3::new(0.0, -0.5, 0.0),
                 ..Default::default()
             },

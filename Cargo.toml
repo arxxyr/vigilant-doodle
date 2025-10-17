@@ -1,9 +1,9 @@
 [package]
 name = "vigilant_doodle"
-version = "0.1.0"
+version = "0.2.0"
 publish = false
 authors = ["ffqi <ffqi@outlook.com>"]
-edition = "2021"
+edition = "2024"
 exclude = ["dist", "build", "assets", "credits"]
 
 [workspace]
@@ -26,10 +26,10 @@ inherits = "release"
 lto = "thin"
 
 [features]
-dev = ["bevy/bevy_dylib"]
+dev = ["bevy/dynamic_linking"]
 
 [dependencies]
-bevy = { version = "0.11", default-features = false, features = [
+bevy = { version = "0.17.2", default-features = false, features = [
     "animation",
     "bevy_asset",
     "bevy_scene",
@@ -43,23 +43,24 @@ bevy = { version = "0.11", default-features = false, features = [
     "bevy_ui",
     "png",
     "hdr",
-    "zstd",
+    "zstd_rust",  # 修复：zstd -> zstd_rust（KTX2 解压缩，纯 Rust 实现）
     "x11",
+    "wayland",  # 添加 Wayland 支持（Ubuntu 22.04 默认）
     "ktx2",
-    "filesystem_watcher",
+    "file_watcher",  # 修复：filesystem_watcher -> file_watcher
     "tonemapping_luts",
     "webgl2",
     # "dynamic_linking"
 ] }
-bevy_kira_audio = { version = "0.17.0" }
-bevy_asset_loader = { version = "0.17" }
-rand = { version = "0.8.3" }
+bevy_kira_audio = { version = "0.24.0" }
+bevy_asset_loader = { version = "0.23.0" }
+rand = { version = "0.9.2" }
 
 # keep the following in sync with Bevy's dependencies
-winit = { version = "0.28", default-features = false }
-image = { version = "0.24", default-features = false }
-bevy_third_person_camera = "0.1.5"
-bevy-inspector-egui = "0.19.0"
+winit = { version = "0.30.12", default-features = false }
+image = { version = "0.25.8", default-features = false }
+bevy_third_person_camera = "0.3.0"
+bevy-inspector-egui = "0.34.0"
 
 [build-dependencies]
-embed-resource = "2.3.0"
+embed-resource = "3.0.6"

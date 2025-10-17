@@ -23,6 +23,7 @@ use crate::world::world::WorldPlugin;
 
 use bevy::app::App;
 use bevy::prelude::*;
+use bevy_state::app::AppExtStates;
 
 #[cfg(debug_assertions)]
 use bevy::diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin};
@@ -75,7 +76,7 @@ pub struct GamePlugin;
 
 impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
-        app.add_state::<GameState>()
+        app.init_state::<GameState>()
             .configure_sets(
                 Update,
                 (

@@ -6,6 +6,8 @@ use crate::MovementSystem;
 // use bevy_third_person_camera::ThirdPersonCameraTarget;
 
 use bevy::prelude::*;
+use bevy::color::palettes::css::YELLOW_GREEN;
+use bevy_state::prelude::*;
 // use bevy_third_person_camera::{ThirdPersonCamera, Zoom};
 
 pub struct PlayerPlugin;
@@ -37,7 +39,7 @@ fn spawn_player(mut commands: Commands, assets: Res<AssetServer>) {
     let flashlight = (
         SpotLightBundle {
             spot_light: SpotLight {
-                color: Color::YELLOW_GREEN,
+                color: YELLOW_GREEN.into(),
                 range: 1000.0,
                 intensity: 15000.0,
                 outer_angle: 0.7,
@@ -92,12 +94,12 @@ fn move_player(
         return;
     }
 
-    if let Ok((mut player_transform, player_speed)) = player_query.get_single_mut() {
+    if let Ok((mut player_transform, player_speed)) = player_query.single_mut() {
         let movement = Vec3::new(
-            actions.player_movement.unwrap().x * player_speed.0 * time.delta_seconds(),
-            (actions.player_movement.unwrap().y * player_speed.0 - 9.81 * time.delta_seconds())
-                * time.delta_seconds(),
-            actions.player_movement.unwrap().z * player_speed.0 * time.delta_seconds(),
+            actions.player_movement.unwrap().x * player_speed.0 * time.delta_secs(),
+            (actions.player_movement.unwrap().y * player_speed.0 - 9.81 * time.delta_secs())
+                * time.delta_secs(),
+            actions.player_movement.unwrap().z * player_speed.0 * time.delta_secs(),
         );
         player_transform.translation.x += movement.x;
         player_transform.translation.z += movement.z;
@@ -120,7 +122,7 @@ fn move_player(
 }
 
 fn player_collision_detection(mut player_query: Query<&mut Transform, With<Player>>) {
-    if let Ok(mut player_transform) = player_query.get_single_mut() {
+    if let Ok(mut player_transform) = player_query.single_mut() {
         if player_transform.translation.x > (FLOOR_LENGTH - 2.0) / 2.0 {
             player_transform.translation.x = (FLOOR_LENGTH - 2.0) / 2.0 - 0.2;
         }

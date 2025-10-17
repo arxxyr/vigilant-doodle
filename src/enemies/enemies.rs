@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use bevy_state::prelude::*;
 use rand::prelude::*;
 
 use crate::player::player::Player;
@@ -68,7 +69,7 @@ fn update_player(
     query_player: Query<&Transform, With<Player>>,
     mut query_enemies: Query<&mut EnemyTarget, With<Enemy>>,
 ) {
-    let player_transform = match query_player.get_single() {
+    let player_transform = match query_player.single() {
         Ok(p) => p,
         Err(e) => panic!("Error getting player transform: {}", e),
     };
@@ -91,13 +92,13 @@ fn enemies_movement(
         direction += enemy_target.0 - transform.translation;
         direction.y = 0.;
         direction = direction.normalize();
-        transform.translation += direction * enemy_speed.0 * time.delta_seconds();
+        transform.translation += direction * enemy_speed.0 * time.delta_secs();
         transform.look_at(enemy_target.0, Vec3::Y);
     });
 }
 
 fn enemy_collision_detection(mut player_query: Query<&mut Transform, With<Enemy>>) {
-    if let Ok(mut player_transform) = player_query.get_single_mut() {
+    if let Ok(mut player_transform) = player_query.single_mut() {
         if player_transform.translation.x > (FLOOR_LENGTH - 2.0) / 2.0 {
             player_transform.translation.x = (FLOOR_LENGTH - 2.0) / 2.0 - 0.2;
         }

@@ -73,8 +73,8 @@ impl Plugin for MenuPlugin {
 // impl Default for ButtonColors {
 //     fn default() -> Self {
 //         ButtonColors {
-//             normal: Color::rgb(0.15, 0.15, 0.15),
-//             hovered: Color::rgb(0.25, 0.25, 0.25),
+//             normal: Color::srgb(0.15, 0.15, 0.15),
+//             hovered: Color::srgb(0.25, 0.25, 0.25),
 //         }
 //     }
 // }
@@ -106,10 +106,10 @@ struct OnDisplaySettingsMenuScreen;
 #[derive(Component)]
 struct OnSoundSettingsMenuScreen;
 
-const NORMAL_BUTTON: Color = Color::rgb(0.15, 0.15, 0.15);
-const HOVERED_BUTTON: Color = Color::rgb(0.25, 0.25, 0.25);
-const HOVERED_PRESSED_BUTTON: Color = Color::rgb(0.25, 0.65, 0.25);
-const PRESSED_BUTTON: Color = Color::rgb(0.35, 0.75, 0.35);
+const NORMAL_BUTTON: Color = Color::srgb(0.15, 0.15, 0.15);
+const HOVERED_BUTTON: Color = Color::srgb(0.25, 0.25, 0.25);
+const HOVERED_PRESSED_BUTTON: Color = Color::srgb(0.25, 0.65, 0.25);
+const PRESSED_BUTTON: Color = Color::srgb(0.35, 0.75, 0.35);
 
 // Tag component used to mark which setting is currently selected
 #[derive(Component)]
@@ -184,7 +184,7 @@ fn button_system(
 //                             TextStyle {
 //                                 font: font_assets.fira_sans.clone(),
 //                                 font_size: 40.0,
-//                                 color: Color::rgb(0.9, 0.9, 0.9),
+//                                 color: Color::srgb(0.9, 0.9, 0.9),
 //                             },
 //                         ),
 //                         MenuButtonAction::Play,
@@ -195,7 +195,7 @@ fn button_system(
 //                             TextStyle {
 //                                 font: font_assets.fira_sans.clone(),
 //                                 font_size: 40.0,
-//                                 color: Color::rgb(0.9, 0.9, 0.9),
+//                                 color: Color::srgb(0.9, 0.9, 0.9),
 //                             },
 //                         ),
 //                         MenuButtonAction::Quit,
@@ -218,7 +218,7 @@ fn menu_action(
             match menu_button_action {
                 MenuButtonAction::Quit => {
                     // println!("Quitting game");
-                    app_exit_events.send(AppExit)
+                    app_exit_events.send(AppExit::Success)
                 }
                 MenuButtonAction::Play => {
                     // println!("Starting game");
@@ -255,7 +255,9 @@ fn setting_button<T: Resource + Component + PartialEq + Copy>(
 ) {
     for (interaction, button_setting, entity) in &interaction_query {
         if *interaction == Interaction::Pressed && *setting != *button_setting {
-            let (previous_button, mut previous_color) = selected_query.single_mut();
+            let Ok((previous_button, mut previous_color)) = selected_query.single_mut() else {
+                return;
+            };
             *previous_color = NORMAL_BUTTON.into();
             commands.entity(previous_button).remove::<SelectedOption>();
             commands.entity(entity).insert(SelectedOption);
@@ -279,11 +281,12 @@ fn main_menu_setup(
         ..Default::default()
     };
 
-    let button_text_style = TextStyle {
+    let button_font = TextFont {
         font: font_assets.fira_sans.clone(),
         font_size: 40.0,
-        color: Color::rgb(0.9, 0.9, 0.9),
+        ..default()
     };
+    let button_text_color = TextColor(Color::srgb(0.9, 0.9, 0.9));
 
     let button_icon_style = Style {
         width: Val::Px(30.0),
@@ -322,20 +325,19 @@ fn main_menu_setup(
                 })
                 .with_children(|parent| {
                     // Display the game name
-                    parent.spawn(
-                        TextBundle::from_section(
-                            "vigilant-doodle",
-                            TextStyle {
-                                font: font_assets.fira_sans.clone(),
-                                font_size: 60.0,
-                                color: Color::rgb(0.9, 0.9, 0.9),
-                            },
-                        )
-                        .with_style(Style {
+                    parent.spawn((
+                        Text::new("vigilant-doodle"),
+                        TextFont {
+                            font: font_assets.fira_sans.clone(),
+                            font_size: 60.0,
+                            ..default()
+                        },
+                        TextColor(Color::srgb(0.9, 0.9, 0.9)),
+                        Node {
                             margin: UiRect::all(Val::Px(30.0)),
                             ..default()
-                        }),
-                    );
+                        },
+                    ));
 
                     // Display three buttons for each action available from the main menu:
                     // - new game
@@ -354,12 +356,13 @@ fn main_menu_setup(
                             let icon = asset_server.load("textures/right.png");
                             parent.spawn(ImageBundle {
                                 style: button_icon_style.clone(),
-                                image: UiImage::new(icon),
+                                image: ImageNode::new(icon),
                                 ..default()
                             });
-                            parent.spawn(TextBundle::from_section(
-                                "New Game",
-                                button_text_style.clone(),
+                            parent.spawn((
+                                Text::new("New Game"),
+                                button_font.clone(),
+                                button_text_color,
                             ));
                         });
                     parent
@@ -375,12 +378,13 @@ fn main_menu_setup(
                             let icon = asset_server.load("textures/wrench.png");
                             parent.spawn(ImageBundle {
                                 style: button_icon_style.clone(),
-                                image: UiImage::new(icon),
+                                image: ImageNode::new(icon),
                                 ..default()
                             });
-                            parent.spawn(TextBundle::from_section(
-                                "Settings",
-                                button_text_style.clone(),
+                            parent.spawn((
+                                Text::new("Settings"),
+                                button_font.clone(),
+                                button_text_color,
                             ));
                         });
                     parent
@@ -396,10 +400,14 @@ fn main_menu_setup(
                             let icon = asset_server.load("textures/exitRight.png");
                             parent.spawn(ImageBundle {
                                 style: button_icon_style.clone(),
-                                image: UiImage::new(icon),
+                                image: ImageNode::new(icon),
                                 ..default()
                             });
-                            parent.spawn(TextBundle::from_section("Quit", button_text_style));
+                            parent.spawn((
+                                Text::new("Quit"),
+                                button_font.clone(),
+                                button_text_color,
+                            ));
                         });
                 });
         });
@@ -415,11 +423,12 @@ fn settings_menu_setup(mut commands: Commands, font_assets: Res<FontAssets>) {
         ..Default::default()
     };
 
-    let button_text_style = TextStyle {
+    let button_font = TextFont {
         font: font_assets.fira_sans.clone(),
         font_size: 40.0,
-        color: Color::rgb(0.9, 0.9, 0.9),
+        ..default()
     };
+    let button_text_color = TextColor(Color::srgb(0.9, 0.9, 0.9));
 
     commands
         .spawn((
@@ -461,9 +470,10 @@ fn settings_menu_setup(mut commands: Commands, font_assets: Res<FontAssets>) {
                                 action,
                             ))
                             .with_children(|parent| {
-                                parent.spawn(TextBundle::from_section(
-                                    text,
-                                    button_text_style.clone(),
+                                parent.spawn((
+                                    Text::new(text),
+                                    button_font.clone(),
+                                    button_text_color,
                                 ));
                             });
                     }
@@ -485,11 +495,12 @@ fn display_settings_menu_setup(
         ..Default::default()
     };
 
-    let button_text_style = TextStyle {
+    let button_font = TextFont {
         font: font_assets.fira_sans.clone(),
         font_size: 40.0,
-        color: Color::rgb(0.9, 0.9, 0.9),
+        ..default()
     };
+    let button_text_color = TextColor(Color::srgb(0.9, 0.9, 0.9));
 
     commands
         .spawn((
@@ -529,9 +540,10 @@ fn display_settings_menu_setup(
                         })
                         .with_children(|parent| {
                             // Display a label for the current setting
-                            parent.spawn(TextBundle::from_section(
-                                "Display Quality",
-                                button_text_style.clone(),
+                            parent.spawn((
+                                Text::new("Display Quality"),
+                                button_font.clone(),
+                                button_text_color,
                             ));
                             // Display a button for each possible value
                             for quality_setting in [
@@ -549,9 +561,10 @@ fn display_settings_menu_setup(
                                     ..default()
                                 });
                                 entity.insert(quality_setting).with_children(|parent| {
-                                    parent.spawn(TextBundle::from_section(
-                                        format!("{quality_setting:?}"),
-                                        button_text_style.clone(),
+                                    parent.spawn((
+                                        Text::new(format!("{quality_setting:?}")),
+                                        button_font.clone(),
+                                        button_text_color,
                                     ));
                                 });
                                 if *display_quality == quality_setting {
@@ -570,7 +583,11 @@ fn display_settings_menu_setup(
                             MenuButtonAction::BackToSettings,
                         ))
                         .with_children(|parent| {
-                            parent.spawn(TextBundle::from_section("Back", button_text_style));
+                            parent.spawn((
+                                Text::new("Back"),
+                                button_font.clone(),
+                                button_text_color,
+                            ));
                         });
                 });
         });
@@ -590,11 +607,12 @@ fn sound_settings_menu_setup(
         ..Default::default()
     };
 
-    let button_text_style = TextStyle {
+    let button_font = TextFont {
         font: font_assets.fira_sans.clone(),
         font_size: 40.0,
-        color: Color::rgb(0.9, 0.9, 0.9),
+        ..default()
     };
+    let button_text_color = TextColor(Color::srgb(0.9, 0.9, 0.9));
 
     commands
         .spawn((
@@ -631,9 +649,10 @@ fn sound_settings_menu_setup(
                             ..default()
                         })
                         .with_children(|parent| {
-                            parent.spawn(TextBundle::from_section(
-                                "Volume",
-                                button_text_style.clone(),
+                            parent.spawn((
+                                Text::new("Volume"),
+                                button_font.clone(),
+                                button_text_color,
                             ));
                             for volume_setting in [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] {
                                 let mut entity = parent.spawn(ButtonBundle {
@@ -661,7 +680,11 @@ fn sound_settings_menu_setup(
                             MenuButtonAction::BackToSettings,
                         ))
                         .with_children(|parent| {
-                            parent.spawn(TextBundle::from_section("Back", button_text_style));
+                            parent.spawn((
+                                Text::new("Back"),
+                                button_font.clone(),
+                                button_text_color,
+                            ));
                         });
                 });
         });
@@ -703,7 +726,7 @@ fn sound_settings_menu_setup(
 // Generic system that takes a component as a parameter, and will despawn all entities with that component
 fn despawn_screen<T: Component>(to_despawn: Query<Entity, With<T>>, mut commands: Commands) {
     for entity in &to_despawn {
-        commands.entity(entity).despawn_recursive();
+        commands.entity(entity).despawn();
     }
 }
 
