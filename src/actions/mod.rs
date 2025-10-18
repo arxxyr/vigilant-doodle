@@ -28,11 +28,11 @@ pub struct Actions {
 
 pub fn set_movement_actions(
     mut actions: ResMut<Actions>,
-    keyboard_input: Res<Input<KeyCode>>,
+    keyboard_input: Res<ButtonInput<KeyCode>>,
     camera: Query<&Transform, (With<Camera3d>, Without<Player>)>,
 ) {
     // for (mut player_transform, player_speed) in player.iter_mut() {
-    let cam = match camera.get_single() {
+    let cam = match camera.single() {
         Ok(c) => c,
         Err(e) => panic!("Error getting camera: {}", e),
     };
@@ -40,20 +40,20 @@ pub fn set_movement_actions(
     let mut direction = Vec3::ZERO;
 
     if get_movement(GameControl::Forward, &keyboard_input) > 0. {
-        direction += cam.forward();
+        direction += *cam.forward();
     }
     if get_movement(GameControl::Back, &keyboard_input) > 0. {
-        direction -= cam.forward();
+        direction -= *cam.forward();
     }
     if get_movement(GameControl::Left, &keyboard_input) > 0. {
-        direction -= cam.right();
+        direction -= *cam.right();
     }
     if get_movement(GameControl::Right, &keyboard_input) > 0. {
-        direction += cam.right();
+        direction += *cam.right();
     }
 
     if get_movement(GameControl::Jump, &keyboard_input) > 0. {
-        direction += cam.up();
+        direction += *cam.up();
     } else {
         direction.y = 0.;
     }

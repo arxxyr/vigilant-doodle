@@ -1,7 +1,5 @@
 #![allow(clippy::type_complexity)]
 
-use bevy_third_person_camera::ThirdPersonCameraPlugin;
-
 mod actions;
 mod audio;
 mod camera;
@@ -23,7 +21,6 @@ use crate::world::world::WorldPlugin;
 
 use bevy::app::App;
 use bevy::prelude::*;
-use bevy_state::app::AppExtStates;
 
 #[cfg(debug_assertions)]
 use bevy::diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin};
@@ -89,23 +86,28 @@ impl Plugin for GamePlugin {
                 )
                     .chain(),
             )
-            .add_plugins((
-                LoadingPlugin,
-                MenuPlugin,
-                ActionsPlugin,
-                WorldPlugin,
-                PlayerCameraPlugin,
-                InternalAudioPlugin,
-                PlayerPlugin,
-                EnemiesPlugin,
-                ThirdPersonCameraPlugin,
-                #[cfg(debug_assertions)]
-                WorldInspectorPlugin::new(),
-            ));
+            .add_plugins(LoadingPlugin)
+            .add_plugins(MenuPlugin)
+            .add_plugins(ActionsPlugin)
+            .add_plugins(WorldPlugin)
+            .add_plugins(PlayerCameraPlugin)
+            .add_plugins(InternalAudioPlugin)
+            .add_plugins(PlayerPlugin)
+            .add_plugins(EnemiesPlugin);
 
         #[cfg(debug_assertions)]
         {
-            app.add_plugins((FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin::default()));
+            // 注意：WorldInspectorPlugin 需要在 EguiPlugin 之后添加
+            // 暂时注释掉避免崩溃
+            // app.add_plugins(WorldInspectorPlugin::new());
+
+            app.add_plugins((
+                FrameTimeDiagnosticsPlugin {
+                    max_history_length: 30,
+                    smoothing_factor: 0.5,
+                },
+                LogDiagnosticsPlugin::default(),
+            ));
         }
     }
 }

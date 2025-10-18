@@ -1,20 +1,36 @@
-use bevy::{
-    core_pipeline::bloom::BloomSettings,
-    // input::mouse::{MouseMotion, MouseScrollUnit, MouseWheel},
-    prelude::*,
-};
-use bevy_third_person_camera::{ThirdPersonCamera, Zoom};
+use bevy::prelude::*;
+use bevy::input::mouse::MouseMotion;
 
 use crate::player::player::Player;
 use crate::{GameState, MovementSystem};
+
 pub struct PlayerCameraPlugin;
 
 #[derive(Component)]
-struct PlayerCamera;
+struct PlayerCamera {
+    /// 相机距离玩家的距离
+    distance: f32,
+    /// 相机的偏航角（水平旋转）
+    yaw: f32,
+    /// 相机的俯仰角（垂直旋转）
+    pitch: f32,
+    /// 鼠标灵敏度
+    sensitivity: f32,
+    /// 是否锁定光标
+    cursor_locked: bool,
+}
 
-// const CAEMRA_ZOOM_SPEED: f32 = 0.5;
-// const CAEMRA_ZOOM_MIN: f32 = 5.0;
-// const CAEMRA_ZOOM_MAX: f32 = 50.0;
+impl Default for PlayerCamera {
+    fn default() -> Self {
+        Self {
+            distance: 10.0,
+            yaw: 0.0,
+            pitch: -30.0_f32.to_radians(),
+            sensitivity: 0.002,
+            cursor_locked: false,
+        }
+    }
+}
 
 impl Plugin for PlayerCameraPlugin {
     fn build(&self, app: &mut App) {
@@ -22,119 +38,123 @@ impl Plugin for PlayerCameraPlugin {
             .add_systems(OnEnter(GameState::Playing), bind_player)
             .add_systems(
                 Update,
-                (update_behaviour, update_camera)
+                (update_camera_controls, update_camera_transform)
                     .chain()
                     .in_set(MovementSystem::Input)
                     .run_if(in_state(GameState::Playing)),
             )
-            // .add_systems(Update, update_camera)
             .add_systems(OnExit(GameState::Playing), reset_cursor);
     }
 }
 
 fn spawn_camera(mut commands: Commands) {
-    let camera = (
-        Camera3dBundle {
-            transform: Transform::from_xyz(0.0, 8.5, 5.0).looking_at(Vec3::ZERO, Vec3::Y),
+    commands.spawn((
+        Camera3d::default(),
+        Camera {
+            is_active: false,  // 初始禁用，进入 Playing 状态时启用
             ..default()
         },
-        BloomSettings {
-            intensity: 0.25, // the default is 0.3
-            ..default()
-        },
-        ThirdPersonCamera {
-            zoom: Zoom::new(10.0, 25.0),
-            // cursor_lock_key: KeyCode::Tab,
-            cursor_lock_active: false,
-            mouse_orbit_button_enabled: false,
-            // zoom_sensitivity: 1.0,
-            // mouse_sensitivity: 1.0,
-            mouse_sensitivity: 0.0,
-            ..Default::default()
-        },
-        PlayerCamera,
-        Name::new("fov"),
-    );
-    commands.spawn(camera);
+        Transform::from_xyz(0.0, 8.5, 5.0).looking_at(Vec3::ZERO, Vec3::Y),
+        PlayerCamera::default(),
+        Name::new("ThirdPersonCamera"),
+    ));
 }
 
-fn update_behaviour(
-    keyboard_input: Res<Input<KeyCode>>,
-    // mut scroll_evr: EventReader<MouseWheel>,
+fn update_camera_controls(
+    keyboard_input: Res<ButtonInput<KeyCode>>,
+    mut mouse_motion: MessageReader<MouseMotion>,
     mut game_state: ResMut<NextState<GameState>>,
-    mut third_camera: Query<&mut ThirdPersonCamera>,
+    mut camera_query: Query<&mut PlayerCamera>,
 ) {
+    let Ok(mut camera) = camera_query.single_mut() else {
+        return;
+    };
+
+    // Tab 键切换菜单并解锁光标
     if keyboard_input.just_pressed(KeyCode::Tab) {
-        third_camera.for_each_mut(|mut third| {
-            third.cursor_lock_active = !third.cursor_lock_active;
-        });
+        camera.cursor_locked = !camera.cursor_locked;
         game_state.set(GameState::Menu);
+        return;
     }
-    // for ev in scroll_evr.iter() {
-    //     match ev.unit {
-    //         MouseScrollUnit::Line => {
-    //             println!(
-    //                 "Scroll (line units): vertical: {}, horizontal: {}",
-    //                 ev.y, ev.x
-    //             );
-    //             // if ev.y > 0.0 {
-    //             //     third_camera.for_each_mut(|mut third| {
-    //             //         third.zoom.distance -= CAEMRA_ZOOM_SPEED;
-    //             //         if third.zoom.distance < CAEMRA_ZOOM_MIN {
-    //             //             third.zoom.distance = CAEMRA_ZOOM_MIN;
-    //             //         }
-    //             //     });
-    //             // } else {
-    //             //     third_camera.for_each_mut(|mut third| {
-    //             //         third.zoom.distance += CAEMRA_ZOOM_SPEED;
-    //             //         if third.zoom.distance > CAEMRA_ZOOM_MAX {
-    //             //             third.zoom.distance = CAEMRA_ZOOM_MAX;
-    //             //         }
-    //             //     });
-    //             // }
-    //         }
-    //         MouseScrollUnit::Pixel => {
-    //             println!(
-    //                 "Scroll (pixel units): vertical: {}, horizontal: {}",
-    //                 ev.y, ev.x
-    //             );
-    //         }
-    //     }
-    // }
-}
 
-fn update_camera(
-    player_query: Query<&Transform, With<Player>>,
-    mut third_camera: Query<&mut ThirdPersonCamera, (With<PlayerCamera>, Without<Player>)>,
-    // time: Res<Time>,
-    // mouse_motion_events: EventReader<MouseMotion>,
-    // mut query: Query<(&Transform, &mut GlobalTransform)>,
-) {
-    if let Some(player_transform) = player_query.iter().next() {
-        for mut third in third_camera.iter_mut() {
-            // third.mouse_sensitivity = 0.0;
-            third.focus = player_transform.translation;
+    // 只有在光标锁定时才处理鼠标移动
+    if camera.cursor_locked {
+        for motion in mouse_motion.read() {
+            // 更新偏航角和俯仰角
+            camera.yaw -= motion.delta.x * camera.sensitivity;
+            camera.pitch -= motion.delta.y * camera.sensitivity;
 
-            // camera.translation.y = player_transform.translation;
-            // third.
-            // camera_transform.translation = player_transform.translation + Vec3::new(0.0, 5.0, 5.0);
-            // camera_transform.look_at(player_transform.translation, Vec3::Y);
+            // 限制俯仰角范围（防止翻转）
+            camera.pitch = camera.pitch.clamp(-89.0_f32.to_radians(), 89.0_f32.to_radians());
         }
     }
 }
 
-fn bind_player(mut third_camera: Query<&mut ThirdPersonCamera>) {
-    third_camera.for_each_mut(|mut third| {
-        third.cursor_lock_active = true;
-    });
+fn update_camera_transform(
+    player_query: Query<&Transform, With<Player>>,
+    mut camera_query: Query<(&mut Transform, &PlayerCamera), (With<Camera3d>, Without<Player>)>,
+) {
+    let Ok(player_transform) = player_query.single() else {
+        return;
+    };
+
+    let Ok((mut camera_transform, camera_settings)) = camera_query.single_mut() else {
+        return;
+    };
+
+    // 计算相机位置
+    let yaw_rotation = Quat::from_rotation_y(camera_settings.yaw);
+    let pitch_rotation = Quat::from_rotation_x(camera_settings.pitch);
+    let combined_rotation = yaw_rotation * pitch_rotation;
+
+    let offset = combined_rotation * Vec3::new(0.0, 0.0, camera_settings.distance);
+    let target_position = player_transform.translation + offset;
+
+    // 设置相机位置和朝向
+    camera_transform.translation = target_position;
+    camera_transform.look_at(player_transform.translation, Vec3::Y);
 }
 
-fn reset_cursor(mut third_camera: Query<&mut ThirdPersonCamera>, mut windows: Query<&mut Window>) {
-    third_camera.for_each_mut(|mut third| {
-        third.cursor_lock_active = false;
-    });
-    let mut www = windows.single_mut();
-    let width = www.width();
-    let height = www.height();
-    www.set_cursor_position(Some(Vec2::new(width / 2., height / 2.)));
+fn bind_player(
+    mut camera_query: Query<(&mut PlayerCamera, &mut Camera), With<Camera3d>>,
+    mut cursor_options_query: Query<&mut bevy::window::CursorOptions>,
+) {
+    let Ok((mut player_camera, mut camera)) = camera_query.single_mut() else {
+        return;
+    };
+
+    player_camera.cursor_locked = true;
+    camera.is_active = true;  // 启用 3D 相机
+
+    // 锁定并隐藏光标
+    if let Ok(mut cursor_options) = cursor_options_query.single_mut() {
+        cursor_options.visible = false;
+        cursor_options.grab_mode = bevy::window::CursorGrabMode::Locked;
+    }
+}
+
+fn reset_cursor(
+    mut camera_query: Query<(&mut PlayerCamera, &mut Camera), With<Camera3d>>,
+    mut cursor_options_query: Query<&mut bevy::window::CursorOptions>,
+    mut windows: Query<&mut Window>,
+) {
+    let Ok((mut player_camera, mut camera)) = camera_query.single_mut() else {
+        return;
+    };
+
+    player_camera.cursor_locked = false;
+    camera.is_active = false;  // 禁用 3D 相机
+
+    // 恢复光标显示并解锁
+    if let Ok(mut cursor_options) = cursor_options_query.single_mut() {
+        cursor_options.visible = true;
+        cursor_options.grab_mode = bevy::window::CursorGrabMode::None;
+    }
+
+    // 将光标移动到窗口中心
+    if let Ok(mut window) = windows.single_mut() {
+        let width = window.resolution.width();
+        let height = window.resolution.height();
+        let _ = window.set_cursor_position(Some(Vec2::new(width / 2.0, height / 2.0)));
+    }
 }

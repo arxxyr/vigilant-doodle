@@ -30,18 +30,42 @@ fn main() {
             ..default()
         }))
         .add_plugins(GamePlugin)
-        .add_systems(PreStartup, set_window_icon)
-        .add_systems(Update, bevy::window::close_on_esc)
+        .add_systems(Startup, set_window_icon)
+        .add_systems(Update, close_on_esc)
         .run();
+}
+
+// 实现 close_on_esc 功能
+fn close_on_esc(
+    mut commands: Commands,
+    focused_windows: Query<(Entity, &Window)>,
+    input: Res<ButtonInput<KeyCode>>,
+) {
+    for (window, focus) in focused_windows.iter() {
+        if !focus.focused {
+            continue;
+        }
+
+        if input.just_pressed(KeyCode::Escape) {
+            commands.entity(window).despawn();
+        }
+    }
 }
 
 // Sets the icon on windows and X11
 fn set_window_icon(
-    windows: NonSend<WinitWindows>,
+    windows: Option<NonSend<WinitWindows>>,
     primary_window: Query<Entity, With<PrimaryWindow>>,
 ) {
-    let primary_entity = primary_window.single();
-    let primary = windows.get_window(primary_entity).unwrap();
+    let Some(windows) = windows else {
+        return;
+    };
+    let Ok(primary_entity) = primary_window.single() else {
+        return;
+    };
+    let Some(primary) = windows.get_window(primary_entity) else {
+        return;
+    };
     let icon_buf = Cursor::new(include_bytes!(
         "../build/macos/AppIcon.iconset/icon_256x256.png"
     ));

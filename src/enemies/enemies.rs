@@ -1,5 +1,4 @@
 use bevy::prelude::*;
-use bevy_state::prelude::*;
 use rand::prelude::*;
 
 use crate::player::player::Player;
@@ -35,18 +34,15 @@ impl Plugin for EnemiesPlugin {
 
 fn genarate_enemies(mut commands: Commands, assets: Res<AssetServer>) {
     // generate x,y in range -FLOOR_SIZE..FLOOR_SIZE
-    let mut rng = rand::thread_rng();
-    let random_x = rng.gen_range(-FLOOR_LENGTH..FLOOR_LENGTH);
-    let random_z = rng.gen_range(-FLOOR_WIDTH..FLOOR_WIDTH);
+    let mut rng = rand::rng();
+    let random_x = rng.random_range(-FLOOR_LENGTH..FLOOR_LENGTH);
+    let random_z = rng.random_range(-FLOOR_WIDTH..FLOOR_WIDTH);
     let enemy = (
         Name::new("Enemy"),
         Enemy,
-        SceneBundle {
-            scene: assets.load("model/enemy.glb#Scene0"),
-            transform: Transform::from_xyz(random_x / 2.0, 0.0, random_z / 2.0),
-            visibility: Visibility::Hidden,
-            ..default()
-        },
+        SceneRoot(assets.load("model/enemy.glb#Scene0")),
+        Transform::from_xyz(random_x / 2.0, 0.0, random_z / 2.0),
+        Visibility::Hidden,
         EnemySpeed(9.0),
         EnemyTarget(Vec3::ZERO),
     );
@@ -74,27 +70,27 @@ fn update_player(
         Err(e) => panic!("Error getting player transform: {}", e),
     };
 
-    query_enemies.for_each_mut(|mut enemy_target| {
+    for mut enemy_target in query_enemies.iter_mut() {
         enemy_target.0 = player_transform.translation;
-    });
+    }
 }
 
 fn enemies_movement(
     time: Res<Time>,
     mut query_enemies: Query<(&mut Transform, &EnemySpeed, &EnemyTarget), With<Enemy>>,
 ) {
-    query_enemies.for_each_mut(|(mut transform, enemy_speed, enemy_target)| {
+    for (mut transform, enemy_speed, enemy_target) in query_enemies.iter_mut() {
         let mut direction = Vec3::ZERO;
         // 距离player 1.0米时停止移动
         if (enemy_target.0 - transform.translation).length() < 1.0 {
-            return;
+            continue;
         }
         direction += enemy_target.0 - transform.translation;
         direction.y = 0.;
         direction = direction.normalize();
         transform.translation += direction * enemy_speed.0 * time.delta_secs();
         transform.look_at(enemy_target.0, Vec3::Y);
-    });
+    }
 }
 
 fn enemy_collision_detection(mut player_query: Query<&mut Transform, With<Enemy>>) {

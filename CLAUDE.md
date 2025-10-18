@@ -248,3 +248,4 @@ pub const FLOOR_WIDTH: f32 = 25.0;
 - `bevy_third_person_camera` 0.3.0：第三人称相机
 - `bevy-inspector-egui` 0.34.0：调试 UI
 - `rand` 0.9.2：随机数生成（敌人生成位置）
+- 根据最新的文档改,不要简化功能,不要省略,不要待定,要完整的实现

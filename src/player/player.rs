@@ -7,7 +7,6 @@ use crate::MovementSystem;
 
 use bevy::prelude::*;
 use bevy::color::palettes::css::YELLOW_GREEN;
-use bevy_state::prelude::*;
 // use bevy_third_person_camera::{ThirdPersonCamera, Zoom};
 
 pub struct PlayerPlugin;
@@ -37,31 +36,25 @@ impl Plugin for PlayerPlugin {
 
 fn spawn_player(mut commands: Commands, assets: Res<AssetServer>) {
     let flashlight = (
-        SpotLightBundle {
-            spot_light: SpotLight {
-                color: YELLOW_GREEN.into(),
-                range: 1000.0,
-                intensity: 15000.0,
-                outer_angle: 0.7,
-                inner_angle: 0.3,
-                shadows_enabled: true,
-                ..default()
-            },
-            // transform: Transform::from_xyz(0.083, -0.093, -0.50),
-            transform: Transform::from_xyz(0.0, 30.0, 0.0).looking_at(Vec3::ZERO, Vec3::Y),
-            // transform: Transform::from_rotation(Quat::from_rotation_x(std::f32::consts::PI/2.0)),
-            // transform: light_trans.look_at(Vec3::ZERO, Vec3::Y),
+        SpotLight {
+            color: YELLOW_GREEN.into(),
+            range: 1000.0,
+            intensity: 15000.0,
+            outer_angle: 0.7,
+            inner_angle: 0.3,
+            shadows_enabled: true,
             ..default()
         },
+        // transform: Transform::from_xyz(0.083, -0.093, -0.50),
+        Transform::from_xyz(0.0, 30.0, 0.0).looking_at(Vec3::ZERO, Vec3::Y),
+        // transform: Transform::from_rotation(Quat::from_rotation_x(std::f32::consts::PI/2.0)),
+        // transform: light_trans.look_at(Vec3::ZERO, Vec3::Y),
         Name::new("FlashLight"),
     );
     let player = (
-        SceneBundle {
-            scene: assets.load("model/player.glb#Scene0"),
-            transform: Transform::from_xyz(0.0, 0.0, 0.0),
-            visibility: Visibility::Hidden,
-            ..default()
-        },
+        SceneRoot(assets.load("model/player.glb#Scene0")),
+        Transform::from_xyz(0.0, 0.0, 0.0),
+        Visibility::Hidden,
         Player,
         Speed(10.0),
         // ThirdPersonCameraTarget,
