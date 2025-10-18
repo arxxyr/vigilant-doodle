@@ -1,251 +1,375 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+本文件为 Claude Code 提供项目指引。
 
 ## 项目概述
 
-这是一个基于 **Bevy 0.17.2** 引擎的 3D 游戏项目，使用 **Rust Edition 2024**，特点：
-- 玩家角色（XiaoYu）带有探照灯，可在地板上移动
-- 敌人（Enemy）会追逐玩家
-- 使用 ECS（Entity-Component-System）架构
-- 支持多平台：Linux、Windows、macOS、Web（Wasm）、Android、iOS
+**Vigilant Doodle** 是一个基于 Bevy 0.17.2 的 3D 俯视角动作游戏，采用 Cargo Workspace 架构。
 
-## 核心架构
+### 核心特性
+- **引擎**：Bevy 0.17.2
+- **语言**：Rust Edition 2024
+- **架构**：Workspace（launcher + game）
+- **视角**：斜向俯视 45°
+- **平台**：Windows / Linux / macOS / Web
+
+---
+
+## 架构设计（重要）
+
+### Workspace 结构
+```
+vigilant-doodle/
+├── crates/
+│   ├── launcher/           # 启动器（可执行程序）
+│   │   └── src/main.rs     # ~100 行，负责初始化
+│   └── game/               # 游戏逻辑（动态库）
+│       └── src/
+│           ├── lib.rs      # 插件注册中心
+│           ├── core/       # 状态机、设置
+│           ├── assets/     # 资源加载
+│           ├── camera/     # 斜向俯视相机
+│           ├── gameplay/   # 玩家、敌人、移动
+│           ├── world/      # 地形、生成
+│           ├── ui/         # 菜单、HUD
+│           ├── input/      # 输入、光标
+│           └── audio/      # 音频
+├── assets/                 # 游戏资源（共享）
+└── docs/                   # 技术文档
+```
+
+### 设计原则
+1. **职责分离**：启动器只负责初始化，游戏逻辑全在 game crate
+2. **动态链接**：开发模式使用 dylib 加速编译
+3. **模块化**：每个模块独立，通过插件注册
+
+---
+
+## 核心概念
 
 ### 状态机（GameState）
-位于 `src/lib.rs:35-44`，定义三个状态：
-- `Loading`：资源加载阶段（默认入口）
-- `Playing`：游戏运行阶段
-- `Menu`：菜单界面
-
-### 系统执行顺序（MovementSystem）
-位于 `src/lib.rs:48-60`，使用 `.chain()` 保证执行顺序：
-```
-Input → Player → Enemy → PlayerMovement → EnemyMovement → Map
+定义在 `crates/game/src/core/state.rs`：
+```rust
+pub enum GameState {
+    AssetLoading,    // 资源加载（默认状态）
+    MainMenu,        // 主菜单（游戏场景 + 模糊遮罩 + UI）
+    Playing,         // 游戏进行
+}
 ```
 
-### 插件架构
-主插件 `GamePlugin` (src/lib.rs:76-110) 按顺序加载：
-1. `LoadingPlugin` - 资源加载
-2. `MenuPlugin` - 菜单系统
-3. `ActionsPlugin` - 输入处理
-4. `WorldPlugin` - 世界生成（地板）
-5. `PlayerCameraPlugin` - 相机控制
-6. `InternalAudioPlugin` - 音频系统
-7. `PlayerPlugin` - 玩家逻辑
-8. `EnemiesPlugin` - 敌人逻辑
-9. `ThirdPersonCameraPlugin` - 第三人称相机
-10. `WorldInspectorPlugin` - 调试专用（仅 debug 模式）
+**流程**：
+```
+AssetLoading → MainMenu → Playing
+                  ↑           ↓
+                  └─── ESC ───┘
+```
 
-### 关键模块
+### 单相机架构
+- 只有一个 `Camera3d`（斜向俯视 45°）
+- 始终激活，不需要切换
+- 平滑跟随玩家
+- MainMenu 状态下也继续跟随（背景有动感）
 
-#### Player 模块 (src/player/)
-- `Player` 组件：玩家标记
-- `Speed` 组件：移动速度（默认 10.0）
-- 系统：`move_player`、`player_collision_detection`
-- 玩家携带一个 SpotLight 子实体（探照灯）
-- 边界检测：限制在 `(FLOOR_LENGTH-2.0)/2.0` 范围内
+### 实体生命周期
+- **预生成**：所有实体在 `AssetLoading` 状态就创建
+- **始终可见**：不使用 show/hide 系统
+- **状态驱动**：通过 `.run_if(in_state())` 控制系统是否执行
 
-#### Enemy 模块 (src/enemies/)
-- `Enemy` 组件：敌人标记
-- `EnemySpeed` 组件：移动速度（默认 9.0）
-- `EnemyTarget` 组件：追逐目标（玩家位置）
-- 系统：`update_player`、`enemies_movement`、`enemy_collision_detection`
-- 敌人会在距离玩家 1.0 米时停止移动
+### UI 叠加渲染
+```
+Z-Index 0:   3D 游戏场景（Camera3d）
+Z-Index 100: 黑色半透明遮罩（60% 不透明）
+Z-Index 200: 菜单 UI（屏幕居中）
+```
 
-#### World 模块 (src/world/)
-- `Floor` 组件：地板尺寸信息
-- 常量：`FLOOR_LENGTH = 50.0`, `FLOOR_WIDTH = 25.0`
-- 地板位于 Y=-0.5，灰色材质
+---
 
-## 构建与运行
+## 常用命令
 
-### 开发环境
-- **Rust 工具链**：nightly（推荐）
-- **必需工具**：
-  - 链接器：Linux 使用 `lld`，macOS 使用 `zld`，Windows 使用 `rust-lld.exe`
-  - 配置见 `.cargo/config.toml`
-
-### 常用命令
-
-#### 本地开发（Native）
+### 开发
 ```bash
-# 快速运行（开发模式，使用动态链接加速编译）
+# 运行游戏（动态链接，快速编译）
 cargo run --features dev
 
-# 发布构建（启用 LTO 优化）
+# 运行特定 crate
+cargo run -p vigilant-doodle-launcher --features dev
+
+# 检查编译
+cargo check --workspace
+```
+
+### 构建
+```bash
+# 发布构建（静态链接，完全优化）
 cargo build --release
 
-# 仅编译不运行
-cargo build
+# 仅构建游戏库
+cargo build -p vigilant-doodle-game
 ```
 
-#### Web 构建（Wasm）
+### 代码质量
 ```bash
-# 安装依赖
-cargo install --locked trunk
-rustup target add wasm32-unknown-unknown
-
-# 启动开发服务器（端口 8080，热重载）
-trunk serve
-
-# 构建 Web 版本
-trunk build --release
+cargo fmt --all
+cargo clippy --workspace -- -D warnings
 ```
 
-#### 移动平台
-```bash
-# Android
-cargo apk run -p mobile
+---
 
-# iOS（需要 macOS + Xcode）
-cd mobile && make run
+## 技术文档索引
+
+### 必读文档（按顺序）
+1. **[WORKSPACE_ARCHITECTURE.md](./docs/WORKSPACE_ARCHITECTURE.md)**
+   Workspace 架构设计，启动器与游戏库的分离策略
+
+2. **[ARCHITECTURE_BEST_PRACTICE.md](./docs/ARCHITECTURE_BEST_PRACTICE.md)**
+   游戏逻辑架构，模块划分，完整代码示例
+
+3. **[IMPLEMENTATION_GUIDE.md](./docs/IMPLEMENTATION_GUIDE.md)**
+   实施步骤，文件清单，进度追踪
+
+4. **[docs/README.md](./docs/README.md)**
+   快速参考，设计决策表格，开发规范
+
+---
+
+## Bevy 0.17.2 API 变更
+
+### 关键变更
+```rust
+// 状态管理
+app.init_state::<GameState>()  // 而非 add_state()
+
+// 颜色
+Color::srgb(0.2, 0.2, 0.3)  // 而非 Color::rgb()
+bevy::color::palettes::css::GRAY  // 而非 Color::GRAY
+
+// 文本（新的元组组件方式）
+(
+    Text::new("Hello"),
+    TextFont { font, font_size: 32.0, ..default() },
+    TextColor(Color::WHITE),
+    Node::default(),
+)
+
+// UI 图像
+ImageNode::new(handle)  // 而非 UiImage
+
+// 应用退出
+AppExit::Success  // 而非 AppExit
+
+// 实体销毁
+commands.entity(e).despawn()  // 自动递归，无需 despawn_recursive
 ```
 
-### VSCode 调试配置
-`.vscode/launch.json` 提供三种配置：
-- **Quick Launch**：快速启动（无调试器等待）
-- **Debug**：完整调试（LLDB）
-- **Debug unit tests**：单元测试调试
+### 导入变更
+```rust
+use bevy_state::prelude::*;  // 用于 OnEnter, OnExit, in_state
+```
 
-## 性能优化配置
+---
 
-### Cargo.toml 优化
-- **开发模式依赖**：`opt-level = 3`（加速第三方库）
-- **开发模式自身**：`opt-level = 1`
-- **发布模式**：`lto = true`, `codegen-units = 1`, `opt-level = 3`
+## 编码规范
 
-### 链接器配置（.cargo/config.toml）
-- Linux：clang + lld + `-Zshare-generics=y`
-- macOS：zld（需手动安装：`brew install michaeleisel/zld/zld`）
-- Windows：rust-lld.exe + `-Zshare-generics=off`
+### 命名约定
+- **类型/组件**：`UpperCamelCase`（例：`IsometricCamera`）
+- **函数/变量**：`snake_case`（例：`spawn_player`）
+- **常量**：`UPPER_SNAKE_CASE`（例：`FLOOR_LENGTH`）
 
-## 代码约定
-
-### 命名规范
-- 组件/插件：`UpperCamelCase`（如 `PlayerPlugin`, `Enemy`）
-- 系统函数：`snake_case`（如 `move_player`, `spawn_floor`）
+### 日志格式
+```rust
+info!("[模块名] 事件描述");
+warn!("[模块名] 警告信息");
+error!("[模块名] 错误信息: {}", detail);
+```
 
 ### 系统注册模式
 ```rust
 app.add_systems(
-    OnEnter(GameState::Loading),  // 状态进入时执行
-    spawn_player
-)
-.add_systems(
     Update,
-    (system_a, system_b)
-        .chain()  // 按顺序执行
-        .in_set(MovementSystem::PlayerMovement)  // 归属系统集
-        .run_if(in_state(GameState::Playing))  // 条件执行
+    my_system
+        .in_set(GameplaySet::Logic)
+        .run_if(in_state(GameState::Playing))
+        .after(other_system)
 );
 ```
 
-### 实体生命周期
-- **Spawn**：在 `OnEnter(GameState::Loading)` 创建实体
-- **Show**：在 `OnEnter(GameState::Playing)` 设置 `Visibility::Visible`
-- **Hide**：在 `OnExit(GameState::Playing)` 设置 `Visibility::Hidden`
-- 避免频繁创建/销毁实体，使用可见性控制
-
-### 资源加载
+### 错误处理
 ```rust
-// 3D 模型（GLTF）
-assets.load("model/player.glb#Scene0")
+// ✅ 推荐
+let Ok(player) = player_query.get_single() else {
+    warn!("[Player] Player not found");
+    return;
+};
 
-// 音频/纹理
-assets.load("audio/flying.ogg")
+// ❌ 避免
+let player = player_query.get_single().unwrap();
+let player = player_query.get_single().expect("Player not found");
 ```
-资源目录：`assets/{audio, fonts, model, textures}`
 
-## 调试工具（仅 Debug 模式）
+---
 
-### 运行时诊断
-- `WorldInspectorPlugin`：实体查看器（egui）
-- `FrameTimeDiagnosticsPlugin`：帧率监控
-- `LogDiagnosticsPlugin`：日志输出
+## 资源管理
 
-### 快捷键
-- **ESC**：退出游戏（`bevy::window::close_on_esc` 系统）
-
-## 常见修改场景
-
-### 添加新实体类型
-1. 在相应模块定义 `Component`（如 `src/player/weapon.rs`）
-2. 创建 `Plugin` 并实现 `fn build()`
-3. 在 `src/lib.rs` 的 `GamePlugin` 中注册插件
-4. 遵循 `spawn → show → hide` 生命周期
-
-### 修改地板尺寸
-编辑 `src/world/world.rs:20-21`：
+### 资源预加载
+所有资源在 `AssetLoading` 状态通过 `bevy_asset_loader` 加载：
 ```rust
-pub const FLOOR_LENGTH: f32 = 50.0;
-pub const FLOOR_WIDTH: f32 = 25.0;
+#[derive(AssetCollection, Resource)]
+pub struct GameAssets {
+    #[asset(path = "fonts/FiraSans-Bold.ttf")]
+    pub font: Handle<Font>,
+
+    #[asset(path = "model/player.glb#Scene0")]
+    pub player_model: Handle<Scene>,
+
+    // ...
+}
 ```
-注意：玩家和敌人的碰撞检测会自动适配
 
-### 调整游戏速度
-- 玩家速度：`src/player/player.rs:64` → `Speed(10.0)`
-- 敌人速度：`src/enemies/enemies.rs:49` → `EnemySpeed(9.0)`
+### 资源路径
+所有路径相对于 workspace 根目录的 `assets/`：
+```rust
+assets.load("model/player.glb#Scene0")  // ✅ 正确
+assets.load("../assets/model/player.glb")  // ❌ 错误
+```
 
-### 添加新的 SystemSet
-1. 在 `src/lib.rs:48-60` 的 `MovementSystem` 枚举中添加变体
-2. 在 `src/lib.rs:79-89` 的 `.configure_sets()` 中添加到执行链
+---
+
+## 常见任务
+
+### 添加新的游戏系统
+1. 在 `crates/game/src/` 创建新模块
+2. 定义组件和系统
+3. 创建插件并实现 `Plugin` trait
+4. 在 `crates/game/src/lib.rs` 注册插件
+
+### 修改状态机
+编辑 `crates/game/src/core/state.rs`：
+- 添加新状态到 `GameState` 枚举
+- 在 `StatePlugin` 中添加状态转换逻辑
+
+### 调整相机参数
+编辑 `crates/game/src/camera/isometric.rs`：
+```rust
+pub struct IsometricCamera {
+    pub offset: Vec3,          // 相机偏移（默认: 0, 12, 10）
+    pub follow_speed: f32,     // 跟随速度（默认: 5.0）
+    pub pitch: f32,            // 俯仰角（默认: -45°）
+}
+```
+
+### 添加 UI 元素
+在 `crates/game/src/ui/` 对应模块：
+- `menu/` - 菜单相关
+- `hud/` - 游戏内 HUD
+
+---
+
+## 性能优化
+
+### 编译优化
+- 开发模式自动使用 `dylib`（通过 `--features dev`）
+- 发布模式自动静态链接 + LTO
+- 链接器已配置（lld/zld/rust-lld）
+
+### 运行时优化
+- 使用 `.in_set()` 组织相关系统
+- 使用 `.after()` / `.before()` 明确依赖
+- 查询使用 `With<T>` / `Without<T>` 过滤
+
+---
+
+## 调试工具
+
+### Inspector（可选）
+```bash
+cargo run --features dev,inspector
+```
+
+### 日志级别
+```bash
+# 设置日志级别
+RUST_LOG=debug cargo run --features dev
+RUST_LOG=info,wgpu=error cargo run --features dev
+```
+
+---
 
 ## 发布流程
 
-### GitHub Actions
-推送格式为 `v[0-9]+.[0-9]+.[0-9]+*` 的标签（如 `v0.2.0`）将触发自动构建：
-- Windows（exe）
-- Linux（AppImage）
-- macOS（dmg）
-- Web（Wasm，可部署到 GitHub Pages）
+### Git 标签触发自动发布
+```bash
+git tag v0.2.0
+git push origin v0.2.0
+```
 
-### 手动部署到 GitHub Pages
-运行 workflow：`.github/workflows/deploy-github-page`
+GitHub Actions 将构建：
+- Windows (.exe)
+- Linux (AppImage)
+- macOS (.dmg)
+- Web (Wasm)
 
-## Bevy 0.17.2 迁移要点
+---
 
-### Feature 名称变更
-- `bevy/bevy_dylib` → `bevy/dynamic_linking`
-- `filesystem_watcher` → `file_watcher`
-- `zstd` → `zstd_rust`（或 `zstd_c` 用于 C 绑定）
+## 依赖版本
 
-### API 变更
-- **时间 API**：`delta_seconds()` → `delta_secs()`
-- **查询 API**：`get_single()` → `single()`, `get_single_mut()` → `single_mut()`
-- **颜色 API**：
-  - `Color::rgb()` → `Color::srgb()`
-  - `Color::GRAY` → `bevy::color::palettes::css::GRAY`（需手动导入）
-  - 颜色常量现在在 `bevy::color::palettes::css` 模块中
-- **形状 API**：`shape::Plane` → `Plane3d::default().mesh().size(x, y).build()`
-- **文本 API**：
-  - `TextBundle::from_section()` 已移除
-  - 新写法：`(Text::new("text"), TextFont{font, font_size, ..}, TextColor(color), Node{..})`
-- **实体 API**：
-  - `despawn_recursive()` → `despawn()`（现自动递归）
-  - `UiImage` → `ImageNode`
-- **状态 API**：
-  - `add_state()` → `init_state()`
-  - 需要导入：`use bevy_state::prelude::*;`（用于 OnEnter, OnExit, in_state 等）
-- **应用退出**：`AppExit` → `AppExit::Success` 或 `AppExit::Error`
+| 库 | 版本 | 说明 |
+|----|----|------|
+| bevy | 0.17.2 | 游戏引擎 |
+| bevy_asset_loader | 0.24.0-rc.1 | 资源预加载 |
+| bevy_kira_audio | 0.24.0 | 音频播放 |
+| rand | 0.9.2 | 随机数生成 |
+| bevy-inspector-egui | 0.34.0 | 调试工具（dev） |
 
-### 平台支持
-- 默认启用 `x11` 和 `wayland`（Ubuntu 22.04 推荐）
-- 如遇兼容性问题可切换显示服务器
+---
 
 ## 注意事项
 
-1. **动态链接限制**：`Cargo.toml:52` 的 `dynamic_linking` 特性已注释，Windows release 构建时会出现 bug
-2. **音频问题**：部分浏览器的 Web 构建可能有音频性能问题（Firefox 已知问题）
-3. **模型文件**：确保 GLTF 文件路径正确（`model/player.glb#Scene0` 中的 `Scene0` 是场景索引）
-4. **边界碰撞**：玩家和敌人使用相同的边界检测逻辑（`FLOOR_*-2.0`），留有 0.2 的安全边距
-5. **重力模拟**：玩家的 Y 轴移动包含简单的重力计算（`-9.81 * delta_secs`），但地面限制在 Y=0.0
+### Workspace 相关
+- 所有 `cargo` 命令默认在 workspace 根目录执行
+- 使用 `-p <package>` 指定特定 crate
+- 使用 `--workspace` 操作所有 crate
 
-## 依赖关键库
-- `bevy` 0.17.2：核心引擎
-- `bevy_kira_audio` 0.24.0：音频系统
-- `bevy_asset_loader` 0.23.0：资源加载器
-- `bevy_third_person_camera` 0.3.0：第三人称相机
-- `bevy-inspector-egui` 0.34.0：调试 UI
-- `rand` 0.9.2：随机数生成（敌人生成位置）
-- 根据最新的文档改,不要简化功能,不要省略,不要待定,要完整的实现
+### 动态链接限制
+- Windows Release 模式不支持 `dylib`
+- 仅在开发模式使用 `--features dev`
+
+### 资源加载
+- 确保所有资源在 `AssetLoading` 状态加载完成
+- 使用 `AssetCollection` 组织资源
+
+### 状态驱动
+- 所有游戏逻辑系统应添加 `.run_if(in_state(GameState::Playing))`
+- 避免手动检查状态，使用 Bevy 的状态过滤
+
+---
+
+## 快速参考
+
+### 查找信息
+- **架构问题** → `docs/WORKSPACE_ARCHITECTURE.md`
+- **游戏逻辑** → `docs/ARCHITECTURE_BEST_PRACTICE.md`
+- **实施步骤** → `docs/IMPLEMENTATION_GUIDE.md`
+- **快速查询** → `docs/README.md`
+
+### 社区资源
+- [Bevy Discord](https://discord.gg/bevy) - #help 频道
+- [Bevy Examples](https://github.com/bevyengine/bevy/tree/main/examples)
+- [Bevy Cheat Book](https://bevy-cheatbook.github.io/)
+
+---
+
+## 代码提交规范
+
+遵循 Conventional Commits：
+```
+feat(camera): 实现斜向俯视相机系统
+fix(player): 修复边界碰撞检测
+refactor(ui): 重构菜单系统为组件化结构
+docs: 更新架构文档
+```
+
+---
+
+最后更新：2025-10-19
+Bevy 版本：0.17.2
+架构版本：v2.0 (Workspace)

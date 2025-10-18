@@ -1,82 +1,199 @@
-# A Bevy game template
+# Vigilant Doodle
 
-Template for a Game using the awesome [Bevy engine][bevy] featuring out of the box builds for Windows, Linux, macOS, and Web (Wasm). It also includes the setup for android support.
+一个基于 Bevy 0.17.2 的 3D 俯视角动作游戏，采用现代 Rust 工程架构。
 
-_Since Bevy is in heavy development, there regularly are unpublished new features or bug fixes. If you like living on the edge, you can use the branch `bevy_main` of this template to be close to the current state of Bevy's main branch_
- 
-# What does this template give you?
-* small example ["game"](https://niklasei.github.io/bevy_game_template/) (*warning: biased; e.g., split into a lot of plugins and using `bevy_kira_audio` for sound*)
-* easy setup for running the web build using [trunk] (`trunk serve`) 
-* run the native version with `cargo run`
-* workflow for GitHub actions creating releases for Windows, Linux, macOS, and Web (Wasm) ready for distribution
-    * push a tag in the form of `v[0-9]+.[0-9]+.[0-9]+*` (e.g. `v1.1.42`) to trigger the flow
-    * WARNING: if you work in a private repository, please be aware that macOS and Windows runners cost more build minutes. You might want to consider running the workflow less often or removing some builds from it. **For public repositories the builds are free!**
+## 🎮 游戏特性
 
-# How to use this template?
- 1. Click "Use this template" on the repository's page
- 2. Look for `ToDo` to use your own game name everywhere
- 3. [Update the icons as described below](#updating-the-icons)
- 4. Start coding :tada:
-    * Start the native app: `cargo run`
-    * Start the web build: `trunk serve`
-        * requires [trunk]: `cargo install --locked trunk`
-        * requires `wasm32-unknown-unknown` target: `rustup target add wasm32-unknown-unknown`
-        * this will serve your app on `8080` and automatically rebuild + reload it after code changes
-    * Start the android app: `cargo apk run -p mobile` (update the library name if you changed it)
-        * requires following the instructions in the [bevy example readme for android setup instructions][android-instructions]
-    * Start the iOS app
-        * Install Xcode through the app store
-        * Launch Xcode and install the iOS simulator (check the box upon first start, or install it through `Preferences > Platforms` later)
-        * Install the iOS and iOS simulator Rust targets with `rustup target add aarch64-apple-ios x86_64-apple-ios aarch64-apple-ios-sim` (see the [bevy example readme for ios setup instructions][ios-instructions])
-        * run `make run` inside the `/mobile` directory
+- **斜向俯视视角**：45° 角度，经典 ARPG 风格
+- **玩家角色**：带探照灯的角色，WASD 移动
+- **敌人 AI**：智能追逐玩家
+- **菜单系统**：游戏场景叠加显示的菜单
+- **跨平台**：支持 Windows / Linux / macOS / Web
 
-You should keep the `credits` directory up to date. The release workflow automatically includes the directory in every build.
+## 🏗️ 项目架构
 
-### Updating the icons
- 1. Replace `build/macos/icon_1024x1024.png` with a `1024` times `1024` pixel png icon and run `create_icns.sh` (make sure to run the script inside the `build/macos` directory) - _Note: this requires a mac_
- 2. Replace `build/windows/icon.ico` (used for windows executable and as favicon for the web-builds)
-    * You can create an `.ico` file for windows by following these steps:
-       1. Open `macos/AppIcon.iconset/icon_256x256.png` in [Gimp](https://www.gimp.org/downloads/)
-       2. Select the `File > Export As` menu item.
-       3. Change the file extension to `.ico` (or click `Select File Type (By Extension)` and select `Microsoft Windows Icon`)
-       4. Save as `build/windows/icon.ico`
- 3. Replace `build/android/res/mipmap-mdpi/icon.png` with `macos/AppIcon.iconset/icon_256x256.png`, but rename it to `icon.png`
+采用 **Cargo Workspace** 架构，启动器与游戏逻辑分离：
 
-### Deploy web build to GitHub pages
- 1. Trigger the `deploy-github-page` workflow
- 2. Activate [GitHub pages](https://pages.github.com/) for your repository
-     1. Source from the `gh-pages` branch (created by the just executed action)
- 3. After a few minutes your game is live at `http://username.github.io/repository`
+```
+vigilant-doodle/
+├── crates/
+│   ├── launcher/     # 启动器（可执行程序）
+│   └── game/         # 游戏逻辑（动态库）
+├── assets/           # 游戏资源
+└── docs/             # 技术文档
+```
 
-To deploy newer versions, just run the `deploy-github-page` workflow again.
+**优势**：
+- 编译速度快（开发模式动态链接）
+- 模块化清晰
+- 易于扩展
 
-Note that this does a `cargo build` and thus does not work with local dependencies. Consider pushing your "custom Bevy fork" to GitHub and using it as a git dependency.
+## 🚀 快速开始
 
-# Removing mobile platforms
+### 环境要求
+- Rust 2024 Edition（推荐 nightly）
+- Bevy 0.17.2
 
-If you don't want to target Android or iOS, you can just delete the `/mobile`, `/build/android`, and `/build/ios` directories.
-Then delete the `[workspace]` section from `Cargo.toml`.
+### 开发模式（快速编译）
+```bash
+cargo run --features dev
+```
 
-# Getting started with Bevy
+### 发布模式（完全优化）
+```bash
+cargo build --release
+```
 
-You should check out the Bevy website for [links to resources][bevy-learn] and the [Bevy Cheat Book] for a bunch of helpful documentation and examples. I can also recommend the [official Bevy Discord server][bevy-discord] for keeping up to date with the development and getting help from other Bevy users.
+### Web 构建
+```bash
+# 安装工具
+cargo install --locked trunk
+rustup target add wasm32-unknown-unknown
 
-# Known issues
+# 启动开发服务器
+trunk serve
+```
 
-Audio in web-builds can have issues in some browsers. This seems to be a general performance issue and not due to the audio itself (see [bevy_kira_audio/#9][firefox-sound-issue]).
+## 🎯 控制说明
 
-# License
+| 操作 | 按键 |
+|------|------|
+| 移动 | WASD |
+| 跳跃 | 空格 |
+| 菜单 | ESC |
+| 退出 | ESC（菜单中点击 Quit）|
 
-This project is licensed under [CC0 1.0 Universal](LICENSE) except some content of `assets` and the Bevy icons in the `build` directory (see [Credits](credits/CREDITS.md)). Go crazy and feel free to show me whatever you build with this ([@nikl_me][nikl-twitter] / [@nikl_me@mastodon.online][nikl-mastodon] ).
+## 📚 技术文档
 
-[bevy]: https://bevyengine.org/
-[bevy-learn]: https://bevyengine.org/learn/
-[bevy-discord]: https://discord.gg/bevy
-[nikl-twitter]: https://twitter.com/nikl_me
-[nikl-mastodon]: https://mastodon.online/@nikl_me
-[firefox-sound-issue]: https://github.com/NiklasEi/bevy_kira_audio/issues/9
-[Bevy Cheat Book]: https://bevy-cheatbook.github.io/introduction.html
-[`wasm-server-runner`]: https://github.com/jakobhellermann/wasm-server-runner
-[trunk]: https://trunkrs.dev/
-[android-instructions]: https://github.com/bevyengine/bevy/blob/latest/examples/README.md#setup
-[ios-instructions]: https://github.com/bevyengine/bevy/blob/latest/examples/README.md#setup-1
+完整的技术文档位于 [`docs/`](./docs/) 目录：
+
+### 必读文档
+1. **[WORKSPACE_ARCHITECTURE.md](./docs/WORKSPACE_ARCHITECTURE.md)** - Workspace 架构设计
+2. **[ARCHITECTURE_BEST_PRACTICE.md](./docs/ARCHITECTURE_BEST_PRACTICE.md)** - 游戏逻辑架构
+3. **[IMPLEMENTATION_GUIDE.md](./docs/IMPLEMENTATION_GUIDE.md)** - 实施指南
+
+### 快速参考
+- [docs/README.md](./docs/README.md) - 文档索引与快速查询
+
+## 🛠️ 开发工具
+
+### 代码检查
+```bash
+cargo fmt --all              # 格式化
+cargo clippy --workspace     # Lint 检查
+cargo check --workspace      # 快速检查
+```
+
+### 调试模式
+```bash
+# 启用 inspector（实体查看器）
+cargo run --features dev,inspector
+```
+
+## 📦 依赖库
+
+| 库名 | 版本 | 用途 |
+|------|------|------|
+| bevy | 0.17.2 | 游戏引擎 |
+| bevy_asset_loader | 0.24.0-rc.1 | 资源预加载 |
+| bevy_kira_audio | 0.24.0 | 音频播放 |
+| rand | 0.9.2 | 随机数生成 |
+
+## 🎨 资源结构
+
+```
+assets/
+├── model/          # 3D 模型（GLTF）
+├── audio/          # 音频文件
+├── fonts/          # 字体
+└── textures/       # UI 图标
+```
+
+## 🔧 构建配置
+
+### 编译优化
+- **开发模式**：第三方库 O3，自身代码 O1
+- **发布模式**：LTO + 单编译单元 + 完全优化
+- **链接器**：Linux(lld) / macOS(zld) / Windows(rust-lld)
+
+### Feature Flags
+- `dev` - 启用动态链接（加速编译）
+- `inspector` - 启用实体查看器
+
+## 🚢 发布流程
+
+### 自动发布
+推送 `v*.*.*` 格式的 Git 标签：
+```bash
+git tag v0.2.0
+git push origin v0.2.0
+```
+
+GitHub Actions 将自动构建：
+- Windows (exe)
+- Linux (AppImage)
+- macOS (dmg)
+- Web (Wasm)
+
+### 手动发布
+```bash
+# 构建所有平台
+cargo build --release --workspace
+
+# 仅构建启动器
+cargo build --release -p vigilant-doodle-launcher
+```
+
+## 🧪 测试
+
+```bash
+# 运行测试
+cargo test --workspace
+
+# 运行基准测试（如果有）
+cargo bench
+```
+
+## 🐛 已知问题
+
+- Web 构建在 Firefox 中可能有音频性能问题
+- Windows 发布模式不支持动态链接（dev feature）
+
+## 📄 许可证
+
+本项目基于 MIT 许可证（详见 LICENSE 文件）。
+
+资源文件（`assets/` 和 `build/` 中的图标）可能有不同的许可证，请查看 [credits/CREDITS.md](./credits/CREDITS.md)。
+
+## 🤝 贡献
+
+欢迎提交 Issue 和 Pull Request！
+
+开发前请阅读：
+- [技术文档](./docs/)
+- [代码风格指南](./docs/README.md#开发规范)
+
+## 🔗 相关资源
+
+- [Bevy 官网](https://bevyengine.org/)
+- [Bevy 文档](https://docs.rs/bevy/)
+- [Bevy Cheat Book](https://bevy-cheatbook.github.io/)
+- [Bevy Discord](https://discord.gg/bevy)
+
+## 📝 更新日志
+
+### v0.2.0（开发中）
+- 🏗️ 重构为 Workspace 架构
+- 📐 采用单相机俯视设计
+- 🎨 菜单叠加渲染
+- ⚡ 优化编译速度
+
+### v0.1.0
+- 🎮 基础游戏玩法
+- 🎯 玩家移动
+- 👹 敌人追逐
+- 🎵 音频系统
+
+---
+
+由 [Claude Code](https://claude.com/claude-code) 驱动构建
