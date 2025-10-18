@@ -21,7 +21,7 @@ use assets::loader::AssetLoaderPlugin;
 use camera::isometric::IsometricCameraPlugin;
 use gameplay::{player::PlayerPlugin, enemy::EnemyPlugin, movement::MovementPlugin};
 use world::spawning::SpawningPlugin;
-// use ui::menu::{OverlayPlugin, MainMenuPlugin};
+use ui::menu::{MenuOverlayPlugin, MainMenuPlugin, SettingsMenuPlugin};
 use input::{actions::InputPlugin, cursor::CursorPlugin};
 // use audio::manager::AudioPlugin;
 
@@ -53,11 +53,11 @@ impl Plugin for GamePlugin {
             // 6. 游戏玩法
             .add_plugins((PlayerPlugin, EnemyPlugin, MovementPlugin))
 
-            // 7. UI 系统（待实现）
-            // .add_plugins((OverlayPlugin, MainMenuPlugin))
+            // 7. UI 系统
+            .add_plugins((MenuOverlayPlugin, MainMenuPlugin, SettingsMenuPlugin))
 
-            // 8. 音频系统（待实现）
-            // .add_plugins(AudioPlugin)
+            // 8. 音频系统
+            .add_plugins(bevy_kira_audio::AudioPlugin)
             ;
 
         // 调试工具（仅 debug 模式）

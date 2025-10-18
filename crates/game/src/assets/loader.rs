@@ -28,9 +28,10 @@ pub struct GameAssets {
     // #[asset(path = "model/enemy.glb#Scene0")]
     // pub enemy_model: Handle<Scene>,
 
-    // 音频
-    #[asset(path = "audio/flying.ogg")]
-    pub bgm: Handle<AudioSource>,
+    // 音频（暂时注释，音频文件格式有问题，待修复）
+    // TODO: 修复音频文件格式后启用
+    // #[asset(path = "audio/flying.ogg")]
+    // pub bgm: Handle<AudioSource>,
 
     // UI 图标
     #[asset(path = "textures/right.png")]
