@@ -11,15 +11,8 @@ name = "vigilant-doodle"
 path = "src/main.rs"
 
 [dependencies]
-# 使用 workspace 依赖
-bevy = { workspace = true, features = [
-    "bevy_winit",
-    "bevy_render",
-    "bevy_core_pipeline",
-    "png",
-    "x11",
-    "wayland",
-] }
+# 使用 workspace 依赖（默认 features 已包含所有必要功能）
+bevy = { workspace = true }
 
 # 游戏库（动态链接）
 vigilant-doodle-game = { path = "../game" }
@@ -30,4 +23,7 @@ image = { version = "0.25.8", default-features = false, features = ["png"] }
 
 [features]
 # 开发模式：启用动态链接加速编译
-dev = ["bevy/dynamic_linking", "vigilant-doodle-game/dev"]
+dev = ["bevy/dynamic_linking"]
+
+# Inspector 调试工具
+inspector = ["vigilant-doodle-game/inspector"]

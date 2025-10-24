@@ -88,9 +88,10 @@
 | **相机** | 单个 Camera3d，斜向俯视 45°，平滑跟随 |
 | **状态** | AssetLoading → MainMenu → Playing |
 | **实体** | 预生成，始终可见，状态过滤系统 |
-| **菜单** | 游戏场景 + 黑色遮罩 + UI 叠加 |
+| **菜单** | 游戏场景 + 半透明遮罩 + UI 叠加 |
 | **输入** | Playing 锁定光标，Menu 解锁 |
 | **资源** | 统一预加载（bevy_asset_loader） |
+| **本地化** | 中文/English 双语，动态切换 |
 
 ### 关键技术点
 
@@ -99,6 +100,7 @@
 3. **实体可见**：删除 show/hide 系统，减少复杂度
 4. **菜单叠加**：使用 ZIndex 层级渲染
 5. **错误处理**：避免 panic，使用 warn + 返回
+6. **本地化支持**：`LocalizedText` 组件自动更新，语言切换实时生效
 
 ### 目录结构
 
@@ -113,7 +115,7 @@ vigilant-doodle/
 │       ├── Cargo.toml
 │       └── src/
 │           ├── lib.rs
-│           ├── core/             # 状态机、设置
+│           ├── core/             # 状态机、本地化
 │           ├── assets/           # 资源加载
 │           ├── camera/           # 斜向俯视相机
 │           ├── gameplay/         # 玩家、敌人、移动
@@ -122,6 +124,9 @@ vigilant-doodle/
 │           ├── input/            # 输入、光标
 │           └── audio/            # 音频
 ├── assets/                       # 游戏资源
+│   ├── fonts/                    # 字体文件
+│   ├── localization/             # 多语言翻译
+│   └── models/                   # 3D 模型
 └── docs/                         # 文档
 ```
 
@@ -129,29 +134,33 @@ vigilant-doodle/
 
 ## 实现清单
 
-### 阶段 1：核心架构
-- [ ] `core/state.rs` - 状态定义
-- [ ] `assets/loader.rs` - 资源预加载
-- [ ] `camera/isometric.rs` - 斜向俯视相机
-- [ ] `world/spawning.rs` - 实体生成
+### 阶段 1：核心架构 ✅
+- [x] `core/state.rs` - 状态定义
+- [x] `core/localization.rs` - 本地化系统
+- [x] `assets/loader.rs` - 资源预加载
+- [x] `camera/isometric.rs` - 斜向俯视相机
+- [x] `world/spawning.rs` - 实体生成
+- [x] `world/terrain.rs` - 地形生成
 
-### 阶段 2：游戏玩法
-- [ ] `gameplay/player.rs` - 玩家移动
-- [ ] `gameplay/enemy.rs` - 敌人 AI
-- [ ] `gameplay/movement.rs` - 碰撞检测
-- [ ] `input/actions.rs` - 输入映射
+### 阶段 2：游戏玩法 ✅
+- [x] `gameplay/player.rs` - 玩家移动
+- [x] `gameplay/enemy.rs` - 敌人 AI
+- [x] `gameplay/movement.rs` - 碰撞检测
+- [x] `input/actions.rs` - 输入映射
+- [x] `input/cursor.rs` - 光标管理
 
-### 阶段 3：UI 系统
-- [ ] `ui/menu/overlay.rs` - 模糊遮罩
-- [ ] `ui/menu/main_menu.rs` - 主菜单
-- [ ] `ui/menu/settings_menu.rs` - 设置菜单
-- [ ] `input/cursor.rs` - 光标管理
+### 阶段 3：UI 系统 ✅
+- [x] `ui/simple_menu.rs` - 主菜单 + 半透明背景
+- [x] `ui/settings_menu.rs` - 设置菜单
+- [x] `ui/components.rs` - UI 组件
+- [x] `ui/styles.rs` - UI 样式
+- [x] 语言切换按钮（🌐 中文/English）
 
-### 阶段 4：完善功能
-- [ ] `audio/manager.rs` - 音频播放
-- [ ] `ui/hud/` - 游戏内 HUD
-- [ ] 性能测试与优化
-- [ ] 代码审查与清理
+### 阶段 4：完善功能 🚧
+- [x] `audio/mod.rs` - 音频系统框架
+- [ ] `ui/hud/` - 游戏内 HUD（可选）
+- [x] 性能测试与优化
+- [x] 代码审查与清理
 
 ---
 
@@ -229,6 +238,12 @@ A: 确保资源加载完成后实体立即可用，避免 Menu 状态时场景�
 
 ## 变更日志
 
+### 2025-10-25 - v0.2.0 功能完善
+- ✅ 实现完整的本地化系统（中文/English）
+- ✅ 添加语言切换按钮（🌐 图标 + 文本）
+- ✅ 完善 UI 系统（主菜单、设置菜单）
+- ✅ 优化用户体验（按钮显示下一个语言）
+
 ### 2025-10-19 - v2.0 架构重构
 - ✅ 采用单相机架构（Camera3d）
 - ✅ 实体预生成，始终可见
@@ -240,13 +255,17 @@ A: 确保资源加载完成后实体立即可用，避免 Menu 状态时场景�
 
 ## 下一步行动
 
-1. **阅读** `ARCHITECTURE_BEST_PRACTICE.md` 完整文档
-2. **创建** 新的目录结构（`src/core/`, `src/camera/` 等）
-3. **实现** 核心架构（状态、相机、资源加载）
-4. **测试** 每个模块的功能
-5. **迭代** 优化与完善
+### 核心功能已完成 ✅
+项目已实现所有核心功能，可正常运行和游玩。
+
+### 可选增强功能
+1. **游戏内 HUD** - 血条、分数、迷你地图
+2. **音频内容** - 添加背景音乐和音效
+3. **3D 模型** - 替换方块为真实角色模型
+4. **更多语言** - 支持日语、韩语等
+5. **CI/CD** - 自动化构建与发布流程
 
 ---
 
-最后更新：2025-10-19
+最后更新：2025-10-25
 维护者：Claude Code

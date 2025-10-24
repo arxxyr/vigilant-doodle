@@ -10,17 +10,11 @@ impl Plugin for IsometricCameraPlugin {
         app
             // 在 AssetLoading 阶段生成相机（始终存在）
             .add_systems(OnEnter(GameState::AssetLoading), spawn_camera)
-            // 在 Playing 状态下更新相机跟随
+            // 在 Playing 和 MainMenu 状态下更新相机跟随
             .add_systems(
                 Update,
                 update_camera_follow
-                    .run_if(in_state(GameState::Playing))
-            )
-            // 在 MainMenu 状态下也更新相机跟随（让背景有动感）
-            .add_systems(
-                Update,
-                update_camera_follow
-                    .run_if(in_state(GameState::MainMenu))
+                    .run_if(in_state(GameState::Playing).or(in_state(GameState::MainMenu)))
             );
     }
 }
@@ -28,15 +22,17 @@ impl Plugin for IsometricCameraPlugin {
 fn spawn_camera(mut commands: Commands) {
     let camera_config = IsometricCamera::default();
 
+    // Camera3d + IsDefaultUiCamera 确保 UI 能够渲染
     commands.spawn((
         Camera3d::default(),
+        IsDefaultUiCamera,  // 明确标记为默认 UI 相机
         Transform::from_translation(camera_config.offset)
             .looking_at(Vec3::ZERO, Vec3::Y),
         IsometricCamera::default(),
         Name::new("IsometricCamera"),
     ));
 
-    info!("[Camera] Isometric camera spawned at offset {:?}", camera_config.offset);
+    info!("[Camera] Isometric camera spawned at offset {:?} with UI rendering enabled", camera_config.offset);
 }
 
 fn update_camera_follow(

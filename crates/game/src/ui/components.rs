@@ -19,6 +19,7 @@ pub enum ButtonAction {
     Settings,
     Quit,
     BackToMenu,
+    ToggleLanguage,
 }
 
 /// 按钮状态组件
@@ -32,3 +33,7 @@ impl Default for ButtonState {
         Self { is_hovered: false }
     }
 }
+
+/// 语言按钮文本标记
+#[derive(Component)]
+pub struct LanguageButtonText;

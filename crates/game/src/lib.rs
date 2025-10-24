@@ -1,29 +1,46 @@
 //! Vigilant Doodle - 游戏核心库
 //!
-//! 这是游戏的主入口，负责注册所有游戏插件。
+//! 基于 Bevy 0.17.2 的游戏引擎，采用 Workspace 架构。
+//! 当前仅包含资源加载和主菜单系统。
 
 #![allow(clippy::type_complexity)]
 
+// ============================================================================
 // 模块声明
-mod core;
+// ============================================================================
+
 mod assets;
 mod camera;
-mod gameplay;
-mod world;
+mod core;
 mod ui;
-mod input;
-mod audio;
+mod world;
 
+// 游戏玩法模块
+mod gameplay;
+// 音频模块（当前为空）
+#[allow(unused)]
+mod audio;
+// 输入模块
+mod input;
+
+// ============================================================================
 // 导入
-use bevy::prelude::*;
-use core::state::StatePlugin;
+// ============================================================================
+
 use assets::loader::AssetLoaderPlugin;
-use camera::isometric::IsometricCameraPlugin;
-use gameplay::{player::PlayerPlugin, enemy::EnemyPlugin, movement::MovementPlugin};
-use world::spawning::SpawningPlugin;
-use ui::menu::{MenuOverlayPlugin, MainMenuPlugin, SettingsMenuPlugin};
-use input::{actions::InputPlugin, cursor::CursorPlugin};
-// use audio::manager::AudioPlugin;
+use bevy::prelude::*;
+use camera::IsometricCameraPlugin;
+use core::localization::LocalizationPlugin;
+use core::state::StatePlugin;
+use gameplay::{EnemyPlugin, MovementPlugin, PlayerPlugin};
+use input::{CursorPlugin, InputPlugin};
+use ui::settings_menu::SettingsMenuPlugin;
+use ui::simple_menu::SimpleMenuPlugin;
+use world::SpawningPlugin;
+
+// ============================================================================
+// 游戏主插件
+// ============================================================================
 
 /// 游戏主插件
 ///
@@ -32,33 +49,30 @@ pub struct GamePlugin;
 
 impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
-        info!("[Game] Loading game plugin...");
+        info!("[Game] 加载游戏插件...");
 
         app
-            // 1. 核心系统（状态机）
-            .add_plugins(StatePlugin)
-
+            // 1. 核心系统（状态机、本地化）
+            .add_plugins((StatePlugin, LocalizationPlugin))
             // 2. 资源加载
             .add_plugins(AssetLoaderPlugin)
-
-            // 3. 世界生成（实体生成）
-            .add_plugins(SpawningPlugin)
-
-            // 4. 相机系统
+            // 3. 相机系统（斜向俯视）
             .add_plugins(IsometricCameraPlugin)
-
-            // 5. 输入管理
-            .add_plugins((InputPlugin, CursorPlugin))
-
-            // 6. 游戏玩法
+            // 4. 世界生成（地形、光照）
+            .add_plugins(SpawningPlugin)
+            // 5. 游戏玩法（玩家、敌人、移动）
             .add_plugins((PlayerPlugin, EnemyPlugin, MovementPlugin))
+            // 6. 输入系统（键盘、鼠标、光标）
+            .add_plugins((InputPlugin, CursorPlugin))
+            // 7. UI系统（主菜单、设置菜单）
+            .add_plugins((SimpleMenuPlugin, SettingsMenuPlugin));
 
-            // 7. UI 系统
-            .add_plugins((MenuOverlayPlugin, MainMenuPlugin, SettingsMenuPlugin))
-
-            // 8. 音频系统
-            .add_plugins(bevy_kira_audio::AudioPlugin)
-            ;
+        // Inspector 工具（可选启用）
+        #[cfg(feature = "inspector")]
+        {
+            app.add_plugins(bevy_inspector_egui::DefaultInspectorConfigPlugin);
+            info!("[Game] Inspector 已启用");
+        }
 
         // 调试工具（仅 debug 模式）
         #[cfg(debug_assertions)]
@@ -69,15 +83,12 @@ impl Plugin for GamePlugin {
             ));
         }
 
-        // Inspector（可选，通过 feature 启用）
-        #[cfg(feature = "inspector")]
-        {
-            app.add_plugins(bevy_inspector_egui::quick::WorldInspectorPlugin::new());
-        }
-
-        info!("[Game] Game plugin loaded successfully");
+        info!("[Game] 游戏插件加载完成");
     }
 }
 
-// 导出公共类型（如果需要被启动器或其他模块使用）
-pub use core::state::{GameState, MenuState};
+// ============================================================================
+// 导出公共类型
+// ============================================================================
+
+pub use core::state::GameState;

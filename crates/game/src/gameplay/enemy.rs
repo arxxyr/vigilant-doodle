@@ -1,6 +1,7 @@
-use bevy::prelude::*;
 use crate::core::state::GameState;
+use crate::gameplay::movement::CollisionRadius;
 use crate::gameplay::player::Player;
+use bevy::prelude::*;
 
 #[derive(Component)]
 pub struct Enemy {
@@ -23,12 +24,10 @@ pub struct EnemyPlugin;
 
 impl Plugin for EnemyPlugin {
     fn build(&self, app: &mut App) {
-        app
-            .add_systems(OnEnter(GameState::AssetLoading), spawn_enemies)
+        app.add_systems(OnEnter(GameState::AssetLoading), spawn_enemies)
             .add_systems(
                 Update,
-                enemy_chase_player
-                    .run_if(in_state(GameState::Playing))
+                enemy_chase_player.run_if(in_state(GameState::Playing)),
             );
     }
 }
@@ -54,6 +53,7 @@ fn spawn_enemies(
             })),
             Transform::from_xyz(x, 0.5, z),
             Enemy::default(),
+            CollisionRadius::new(0.6), // 碰撞半径略大于胶囊体半径（0.4）以提供缓冲
             Name::new(format!("Enemy_{}", i)),
         ));
     }

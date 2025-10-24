@@ -1,0 +1,39 @@
+{
+  "menu": {
+    "title": "Vigilant Doodle",
+    "new_game": "新游戏",
+    "resume": "继续游戏",
+    "save_game": "存档",
+    "settings": "设置",
+    "back_to_menu": "返回主菜单",
+    "quit": "退出游戏"
+  },
+  "game": {
+    "paused": "暂停",
+    "resume": "继续",
+    "back_to_menu": "返回主菜单"
+  },
+  "settings": {
+    "title": "设置",
+    "appearance": "外观",
+    "graphics": "图形",
+    "audio": "声音",
+    "controls": "控制",
+    "gameplay": "游戏性",
+    "back": "返回",
+    "language": "语言",
+    "language_chinese": "中文",
+    "language_english": "English",
+    "volume_master": "主音量",
+    "volume_music": "音乐音量",
+    "volume_sfx": "音效音量",
+    "resolution": "分辨率",
+    "fullscreen": "全屏",
+    "vsync": "垂直同步",
+    "difficulty": "难度",
+    "auto_save": "自动保存",
+    "mouse_sensitivity": "鼠标灵敏度",
+    "invert_y": "反转 Y 轴",
+    "key_bindings": "按键绑定"
+  }
+}

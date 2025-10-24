@@ -1,45 +1,53 @@
-use bevy::prelude::*;
-use bevy_asset_loader::prelude::*;
-use bevy_kira_audio::AudioSource;
 use crate::core::state::GameState;
+use bevy::prelude::*;
 
+/// 资源加载插件
 pub struct AssetLoaderPlugin;
 
 impl Plugin for AssetLoaderPlugin {
     fn build(&self, app: &mut App) {
-        app.add_loading_state(
-            LoadingState::new(GameState::AssetLoading)
-                .continue_to_state(GameState::MainMenu)
-                .load_collection::<GameAssets>()
-        );
+        app
+            // 进入 AssetLoading 状态时开始加载资源
+            .add_systems(OnEnter(GameState::AssetLoading), load_assets)
+            // 检查资源加载状态
+            .add_systems(
+                Update,
+                check_assets_ready.run_if(in_state(GameState::AssetLoading)),
+            );
     }
 }
 
-#[derive(AssetCollection, Resource)]
+/// 游戏资源集合
+#[derive(Resource)]
 pub struct GameAssets {
-    // 字体
-    #[asset(path = "fonts/FiraSans-Bold.ttf")]
+    /// 主字体
     pub font: Handle<Font>,
+}
 
-    // 3D 模型（暂时注释，等有模型文件后再启用）
-    // #[asset(path = "model/player.glb#Scene0")]
-    // pub player_model: Handle<Scene>,
+/// 加载资源
+fn load_assets(mut commands: Commands, asset_server: Res<AssetServer>) {
+    info!("[Assets] 开始加载资源...");
 
-    // #[asset(path = "model/enemy.glb#Scene0")]
-    // pub enemy_model: Handle<Scene>,
+    let assets = GameAssets {
+        font: asset_server.load("fonts/SarasaTermSCNerd/SarasaTermSCNerd-Regular.ttf"),
+    };
 
-    // 音频（暂时注释，音频文件格式有问题，待修复）
-    // TODO: 修复音频文件格式后启用
-    // #[asset(path = "audio/flying.ogg")]
-    // pub bgm: Handle<AudioSource>,
+    commands.insert_resource(assets);
 
-    // UI 图标
-    #[asset(path = "textures/right.png")]
-    pub icon_right: Handle<Image>,
+    info!("[Assets] 资源句柄已创建");
+}
 
-    #[asset(path = "textures/wrench.png")]
-    pub icon_settings: Handle<Image>,
-
-    #[asset(path = "textures/exitRight.png")]
-    pub icon_exit: Handle<Image>,
+/// 检查资源是否加载完成，完成后切换到主菜单
+fn check_assets_ready(
+    asset_server: Res<AssetServer>,
+    assets: Res<GameAssets>,
+    mut next_state: ResMut<NextState<GameState>>,
+) {
+    // 检查字体是否加载完成
+    if let Some(state) = asset_server.get_load_state(&assets.font) {
+        if state.is_loaded() {
+            info!("[Assets] 所有资源加载完成，切换到主菜单");
+            next_state.set(GameState::MainMenu);
+        }
+    }
 }

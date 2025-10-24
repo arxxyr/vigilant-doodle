@@ -1,5 +1,5 @@
-use bevy::prelude::*;
 use crate::core::state::GameState;
+use bevy::prelude::*;
 
 /// 输入动作资源
 #[derive(Resource, Default)]
@@ -30,21 +30,17 @@ pub struct InputPlugin;
 
 impl Plugin for InputPlugin {
     fn build(&self, app: &mut App) {
-        app
-            .init_resource::<InputActions>()
-            .add_systems(
-                Update,
-                process_input
-                    .run_if(in_state(GameState::Playing))
-            );
+        app.init_resource::<InputActions>().add_systems(
+            Update,
+            (
+                process_input.run_if(in_state(GameState::Playing)),
+                handle_pause_toggle, // 处理暂停/恢复（在任何状态都监听）
+            ),
+        );
     }
 }
 
-fn process_input(
-    keyboard: Res<ButtonInput<KeyCode>>,
-    mut actions: ResMut<InputActions>,
-) {
-
+fn process_input(keyboard: Res<ButtonInput<KeyCode>>, mut actions: ResMut<InputActions>) {
     let mut direction = Vec2::ZERO;
 
     // 基于相机方向的移动输入
@@ -67,4 +63,29 @@ fn process_input(
     }
 
     actions.movement = direction;
+}
+
+/// 处理 ESC 键的暂停/恢复切换
+fn handle_pause_toggle(
+    keyboard: Res<ButtonInput<KeyCode>>,
+    current_state: Res<State<GameState>>,
+    mut next_state: ResMut<NextState<GameState>>,
+) {
+    if keyboard.just_pressed(KeyCode::Escape) {
+        match current_state.get() {
+            GameState::Playing => {
+                // 游戏中按 ESC：进入暂停
+                info!("[Input] ESC pressed: Playing → Paused");
+                next_state.set(GameState::Paused);
+            }
+            GameState::Paused => {
+                // 暂停中按 ESC：恢复游戏
+                info!("[Input] ESC pressed: Paused → Playing");
+                next_state.set(GameState::Playing);
+            }
+            _ => {
+                // 其他状态不处理 ESC
+            }
+        }
+    }
 }

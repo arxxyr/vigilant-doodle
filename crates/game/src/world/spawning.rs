@@ -1,6 +1,6 @@
-use bevy::prelude::*;
 use crate::core::state::GameState;
 use crate::world::terrain::{FLOOR_LENGTH, FLOOR_WIDTH};
+use bevy::prelude::*;
 
 pub struct SpawningPlugin;
 
@@ -8,10 +8,10 @@ impl Plugin for SpawningPlugin {
     fn build(&self, app: &mut App) {
         app
             // 在资源加载完成后立即生成所有实体
-            .add_systems(OnEnter(GameState::AssetLoading), (
-                spawn_terrain,
-                spawn_lights,
-            ).chain());
+            .add_systems(
+                OnEnter(GameState::AssetLoading),
+                (spawn_terrain, spawn_lights).chain(),
+            );
     }
 }
 
@@ -21,12 +21,14 @@ fn spawn_terrain(
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
     commands.spawn((
-        Mesh3d(meshes.add(
-            Plane3d::default()
-                .mesh()
-                .size(FLOOR_LENGTH, FLOOR_WIDTH)
-                .build()
-        )),
+        Mesh3d(
+            meshes.add(
+                Plane3d::default()
+                    .mesh()
+                    .size(FLOOR_LENGTH, FLOOR_WIDTH)
+                    .build(),
+            ),
+        ),
         MeshMaterial3d(materials.add(StandardMaterial {
             base_color: Color::srgb(0.3, 0.3, 0.35),
             perceptual_roughness: 0.8,
@@ -57,9 +59,9 @@ fn spawn_lights(mut commands: Commands) {
         },
         Transform::from_rotation(Quat::from_euler(
             EulerRot::XYZ,
-            -std::f32::consts::FRAC_PI_4,  // -45 度俯角
-            std::f32::consts::FRAC_PI_4,   // 45 度侧向
-            0.0
+            -std::f32::consts::FRAC_PI_4, // -45 度俯角
+            std::f32::consts::FRAC_PI_4,  // 45 度侧向
+            0.0,
         )),
         Name::new("SunLight"),
     ));
