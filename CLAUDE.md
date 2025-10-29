@@ -105,12 +105,28 @@ Z-Index 200: 菜单 UI（屏幕居中）
 ## 常用命令
 
 ### 开发
+
+**Windows 用户注意**：
+- ❌ **不要使用 `--features dev`**（会导致访问违例崩溃）
+- ✅ 使用 `cargo run` 或 `cargo run --profile release-fast`
+- 原因：Windows MSVC 工具链不支持 Bevy 动态链接
+
+**Linux/macOS 用户**：
 ```bash
 # 运行游戏（动态链接，快速编译）
 cargo run --features dev
 
 # 运行特定 crate
 cargo run -p vigilant-doodle-launcher --features dev
+```
+
+**所有平台通用**：
+```bash
+# 标准开发模式（静态链接，较慢但稳定）
+cargo run
+
+# 快速发布模式（2-3分钟编译，性能接近 release）
+cargo run --profile release-fast
 
 # 检查编译
 cargo check --workspace
@@ -438,9 +454,11 @@ GitHub Actions 将构建：
 - 使用 `-p <package>` 指定特定 crate
 - 使用 `--workspace` 操作所有 crate
 
-### 动态链接限制
-- Windows Release 模式不支持 `dylib`
-- 仅在开发模式使用 `--features dev`
+### 动态链接限制（重要）
+- **Windows 平台**：完全不支持 `--features dev`（会导致访问违例崩溃）
+  - 原因：MSVC 工具链与 Bevy 动态链接不兼容
+  - 解决：使用 `cargo run` 或 `cargo run --profile release-fast`
+- **Linux/macOS 平台**：可以正常使用 `--features dev`（加速编译）
 
 ### 资源加载
 - 确保所有资源在 `AssetLoading` 状态加载完成
@@ -493,6 +511,39 @@ docs: 更新架构文档
 **重要**：根据项目配置，commit message 中**不包含** Claude Code 的署名信息。
 
 ---
+
+## 已知问题与解决方案
+
+### Windows 开发环境崩溃（已解决）
+
+**问题描述**：
+- 运行 `cargo run --features dev` 导致访问违例（STATUS_ACCESS_VIOLATION）
+- 程序在启动时立即崩溃，无法显示任何日志
+
+**根本原因**：
+- `dev` feature 启用了 `bevy/dynamic_linking`
+- Windows MSVC 工具链与 Bevy 0.17.2 的动态链接不兼容
+- 这是 Bevy 官方已知的跨平台限制
+
+**解决方案**：
+```bash
+# ❌ Windows 上会崩溃
+cargo run --features dev
+
+# ✅ 推荐方案 1：标准开发模式（稳定）
+cargo run
+
+# ✅ 推荐方案 2：快速发布模式（2-3分钟，性能好）
+cargo run --profile release-fast
+
+# ✅ Linux/macOS 可以正常使用
+cargo run --features dev
+```
+
+**影响范围**：
+- 仅影响 Windows 开发环境
+- Linux/macOS 不受影响
+- 发布构建（`cargo build --release`）不受影响
 
 ---
 

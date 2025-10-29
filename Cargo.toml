@@ -48,12 +48,20 @@ opt-level = 3
 [profile.dev]
 opt-level = 1
 
-# 发布模式：完全优化
+# 发布模式：完全优化（最终发布用，编译慢但性能最优）
 [profile.release]
-lto = true
+lto = true          # 完整 LTO：最优性能，编译时间 15-20 分钟
 codegen-units = 1
 opt-level = 3
-strip = true  # 移除调试符号，减小体积
+strip = true        # 移除调试符号，减小体积
+
+# 快速发布模式：用于日常开发测试（2-3 分钟编译）
+[profile.release-fast]
+inherits = "release"
+lto = false         # 关闭 LTO，极速编译
+codegen-units = 16  # 并行代码生成
+opt-level = 2       # 降低优化级别
+strip = false       # 保留符号，便于调试
 
 # 分发模式（cargo dist）
 [profile.dist]
