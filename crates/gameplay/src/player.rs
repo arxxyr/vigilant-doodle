@@ -1,31 +1,34 @@
-use vigilant_doodle_assets::GameAssets;
-use vigilant_doodle_camera::components::CameraTarget;
-use vigilant_doodle_core::state::GameState;
 use crate::movement::CollisionRadius;
 use bevy::color::palettes::css::YELLOW_GREEN;
 use bevy::prelude::*;
+use vigilant_doodle_assets::GameAssets;
+use vigilant_doodle_camera::components::CameraTarget;
+use vigilant_doodle_core::{state::GameState, BalanceConfig};
 
 #[derive(Component)]
 pub struct Player {
     pub speed: f32,
-    pub rotation_speed: f32, // 旋转速度（弧度/秒）
-    pub jump_force: f32,      // 跳跃力度
-    pub gravity: f32,         // 重力加速度
-    pub vertical_velocity: f32, // 垂直速度（Y 轴）
-    pub is_grounded: bool,    // 是否在地面
-    pub ground_level: f32,    // 地面高度
+    pub rotation_speed: f32,    // 旋转速度（弧度/秒）
+    pub jump_force: f32,         // 跳跃力度
+    pub gravity: f32,            // 重力加速度
+    pub vertical_velocity: f32,  // 垂直速度（Y 轴）
+    pub is_grounded: bool,       // 是否在地面
+    pub ground_level: f32,       // 地面高度
+    pub detection_range: f32,    // 敌人检测范围
 }
 
-impl Default for Player {
-    fn default() -> Self {
+impl Player {
+    /// 从平衡配置创建玩家
+    pub fn from_balance(balance: &BalanceConfig) -> Self {
         Self {
-            speed: 10.0,
-            rotation_speed: 10.0,
-            jump_force: 7.5,       // 跳跃初速度（降低高度）
-            gravity: -30.0,        // 重力（负值向下）
+            speed: balance.player.speed,
+            rotation_speed: balance.player.rotation_speed,
+            jump_force: balance.player.jump_force,
+            gravity: balance.player.gravity,
+            detection_range: balance.player.detection_range,
             vertical_velocity: 0.0,
             is_grounded: true,
-            ground_level: 0.0,     // 默认地面高度
+            ground_level: 0.0,
         }
     }
 }
@@ -45,13 +48,22 @@ impl Plugin for PlayerPlugin {
 fn spawn_player(
     mut commands: Commands,
     assets: Res<GameAssets>,
+    balance: Res<BalanceConfig>,
 ) {
+    // 从配置文件创建玩家
+    let player = Player::from_balance(&balance);
+
+    info!(
+        "[Player] 玩家配置: 速度={}, 跳跃力={}",
+        player.speed, player.jump_force
+    );
+
     // 使用 glb 模型作为玩家
     commands
         .spawn((
             SceneRoot(assets.player_model.clone()),
             Transform::from_xyz(0.0, 0.0, 0.0),
-            Player::default(),
+            player,
             CameraTarget,              // 标记为相机跟随目标
             CollisionRadius::new(0.6), // 碰撞半径
             Name::new("Player"),
@@ -149,17 +161,17 @@ fn player_movement(
         player.vertical_velocity = 0.0;
     }
 
-    // 确定玩家朝向方向
-    const DETECTION_RANGE: f32 = 20.0; // 20码检测范围
+    // 确定玩家朝向方向（使用配置的检测范围）
+    let detection_range = player.detection_range;
 
-    // 查找20码范围内最近的敌人
+    // 查找检测范围内最近的敌人
     let nearest_enemy = enemy_query
         .iter()
         .map(|enemy_transform| {
             let distance = transform.translation.distance(enemy_transform.translation);
             (distance, enemy_transform.translation)
         })
-        .filter(|(distance, _)| *distance <= DETECTION_RANGE)
+        .filter(|(distance, _)| *distance <= detection_range)
         .min_by(|a, b| a.0.partial_cmp(&b.0).unwrap());
 
     // 计算目标朝向

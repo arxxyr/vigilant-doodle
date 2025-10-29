@@ -5,16 +5,18 @@
 //! - 本地化系统（Localization）
 //! - 存档系统（Save）
 //! - 加密系统（Crypto）
+//! - 平衡配置系统（Balance）
 
 #![allow(clippy::type_complexity)]
 
+pub mod balance;
 pub mod crypto;
 pub mod localization;
 pub mod save;
 pub mod state;
 
 // 重新导出常用类型
-pub use state::GameState;
+pub use balance::{BalanceConfig, BalancePlugin};
 pub use localization::LocalizationPlugin;
 pub use save::{SaveManager, SavePlugin};
-pub use state::StatePlugin;
+pub use state::{GameState, StatePlugin};

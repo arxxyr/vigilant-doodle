@@ -1,0 +1,21 @@
+{
+  "player": {
+    "speed": 7.5,
+    "rotation_speed": 10.0,
+    "jump_force": 7.5,
+    "gravity": -30.0,
+    "detection_range": 10.0
+  },
+  "enemy": {
+    "ai": {
+      "move_speed": 3.5,
+      "stop_distance": 1.5,
+      "rotation_speed": 10.0
+    },
+    "detection": {
+      "detection_range": 17.5,
+      "lose_target_range": 25.0,
+      "field_of_view": 360.0
+    }
+  }
+}

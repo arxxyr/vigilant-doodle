@@ -19,7 +19,7 @@ mod save;
 use bevy::prelude::*;
 
 // 核心系统
-use vigilant_doodle_core::{LocalizationPlugin, SavePlugin, StatePlugin};
+use vigilant_doodle_core::{BalancePlugin, LocalizationPlugin, SavePlugin, StatePlugin};
 
 // 本地模块插件
 use enemy_setup::EnemySetupPlugin;
@@ -60,8 +60,14 @@ impl Plugin for GamePlugin {
         info!("[Game] 加载游戏插件...");
 
         app
-            // 1. 核心系统（状态机、本地化、存档管理器）
-            .add_plugins((StatePlugin, LocalizationPlugin, SavePlugin, GameSavePlugin))
+            // 1. 核心系统（状态机、本地化、存档管理器、平衡配置）
+            .add_plugins((
+                StatePlugin,
+                LocalizationPlugin,
+                SavePlugin,
+                GameSavePlugin,
+                BalancePlugin,
+            ))
             // 2. 资源加载
             .add_plugins(AssetLoaderPlugin)
             // 3. 相机系统（斜向俯视）
