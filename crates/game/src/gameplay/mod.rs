@@ -6,6 +6,6 @@ mod enemy;
 mod movement;
 mod player;
 
-pub use enemy::EnemyPlugin;
+pub use enemy::{Enemy, EnemyPlugin};
 pub use movement::MovementPlugin;
-pub use player::PlayerPlugin;
+pub use player::{Player, PlayerPlugin};

@@ -5,6 +5,7 @@
 use super::settings_menu::SettingsMenuState;
 use crate::assets::loader::GameAssets;
 use crate::core::localization::{CurrentLanguage, LocalizedText, TranslationResources};
+use crate::core::save::SaveManager;
 use crate::core::state::{GameProgress, GameState};
 use bevy::prelude::*;
 
@@ -277,6 +278,7 @@ fn button_system(
     mut settings_state: ResMut<NextState<SettingsMenuState>>,
     mut current_language: ResMut<CurrentLanguage>,
     mut game_progress: ResMut<GameProgress>,
+    mut save_manager: ResMut<SaveManager>,
 ) {
     for (interaction, mut color, action) in &mut interaction_query {
         match *interaction {
@@ -294,8 +296,10 @@ fn button_system(
                         next_state.set(GameState::Playing);
                     }
                     MenuButtonAction::SaveGame => {
-                        info!("[SimpleMenu] Clicked: SaveGame - 存档功能（未实现）");
-                        // TODO: 实现存档/加载功能
+                        info!("[SimpleMenu] Clicked: SaveGame - 请求保存游戏");
+                        save_manager.request_save();
+                        // 标记有活跃游戏
+                        game_progress.has_active_game = true;
                     }
                     MenuButtonAction::Settings => {
                         info!("[SimpleMenu] Clicked: Settings - 进入设置菜单");

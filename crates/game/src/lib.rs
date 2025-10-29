@@ -15,6 +15,8 @@ mod core;
 mod ui;
 mod world;
 
+// AI 系统模块
+mod ai;
 // 游戏玩法模块
 mod gameplay;
 // 音频模块（当前为空）
@@ -27,10 +29,12 @@ mod input;
 // 导入
 // ============================================================================
 
+use ai::EnemyAIPlugin;
 use assets::loader::AssetLoaderPlugin;
 use bevy::prelude::*;
 use camera::IsometricCameraPlugin;
 use core::localization::LocalizationPlugin;
+use core::save::SavePlugin;
 use core::state::StatePlugin;
 use gameplay::{EnemyPlugin, MovementPlugin, PlayerPlugin};
 use input::{CursorPlugin, InputPlugin};
@@ -52,8 +56,8 @@ impl Plugin for GamePlugin {
         info!("[Game] 加载游戏插件...");
 
         app
-            // 1. 核心系统（状态机、本地化）
-            .add_plugins((StatePlugin, LocalizationPlugin))
+            // 1. 核心系统（状态机、本地化、存档）
+            .add_plugins((StatePlugin, LocalizationPlugin, SavePlugin))
             // 2. 资源加载
             .add_plugins(AssetLoaderPlugin)
             // 3. 相机系统（斜向俯视）
@@ -62,9 +66,11 @@ impl Plugin for GamePlugin {
             .add_plugins(SpawningPlugin)
             // 5. 游戏玩法（玩家、敌人、移动）
             .add_plugins((PlayerPlugin, EnemyPlugin, MovementPlugin))
-            // 6. 输入系统（键盘、鼠标、光标）
+            // 6. AI 系统（敌人行为）
+            .add_plugins(EnemyAIPlugin)
+            // 7. 输入系统（键盘、鼠标、光标）
             .add_plugins((InputPlugin, CursorPlugin))
-            // 7. UI系统（主菜单、设置菜单）
+            // 8. UI系统（主菜单、设置菜单）
             .add_plugins((SimpleMenuPlugin, SettingsMenuPlugin));
 
         // Inspector 工具（可选启用）

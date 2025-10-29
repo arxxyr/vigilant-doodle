@@ -1,37 +1,56 @@
-use crate::core::state::GameState;
-use crate::gameplay::movement::CollisionRadius;
-use crate::gameplay::player::Player;
+//! 敌人基础组件
+//!
+//! 定义敌人实体的基础属性和生成逻辑
+//! AI 逻辑已移至 `crate::ai` 模块
+
 use bevy::prelude::*;
 
+use crate::ai::{DetectionConfig, EnemyAIConfig, EnemyAIState, EnemyTarget};
+use crate::core::state::GameState;
+use crate::gameplay::movement::CollisionRadius;
+
+/// 敌人标记组件
+///
+/// 用于标识一个实体是敌人
 #[derive(Component)]
-pub struct Enemy {
-    pub speed: f32,
-    pub chase_distance: f32,
-    pub stop_distance: f32,
+pub struct Enemy;
+
+/// 敌人属性
+///
+/// 存储敌人的基础属性（生命值、攻击力等）
+#[derive(Component)]
+pub struct EnemyStats {
+    /// 最大生命值
+    pub max_health: f32,
+    /// 当前生命值
+    pub current_health: f32,
+    /// 攻击力（未来扩展）
+    #[allow(dead_code)]
+    pub attack_power: f32,
 }
 
-impl Default for Enemy {
+impl Default for EnemyStats {
     fn default() -> Self {
         Self {
-            speed: 7.0,
-            chase_distance: 20.0,
-            stop_distance: 1.5,
+            max_health: 100.0,
+            current_health: 100.0,
+            attack_power: 10.0,
         }
     }
 }
 
+/// 敌人插件
+///
+/// 负责敌人实体的生成
 pub struct EnemyPlugin;
 
 impl Plugin for EnemyPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(OnEnter(GameState::AssetLoading), spawn_enemies)
-            .add_systems(
-                Update,
-                enemy_chase_player.run_if(in_state(GameState::Playing)),
-            );
+        app.add_systems(OnEnter(GameState::AssetLoading), spawn_enemies);
     }
 }
 
+/// 生成敌人系统
 fn spawn_enemies(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
@@ -40,54 +59,51 @@ fn spawn_enemies(
     use rand::Rng;
     let mut rng = rand::rng();
 
-    // 生成 3 个敌人
+    info!("[Enemy] 开始生成敌人...");
+
+    // 生成 3 个敌人（适配扩大后的地图范围）
     for i in 0..3 {
-        let x = rng.random_range(-20.0..20.0);
-        let z = rng.random_range(-10.0..10.0);
+        let x = rng.random_range(-60.0..60.0);
+        let z = rng.random_range(-30.0..30.0);
 
         commands.spawn((
+            // 渲染组件
             Mesh3d(meshes.add(Capsule3d::new(0.4, 1.0))),
             MeshMaterial3d(materials.add(StandardMaterial {
                 base_color: Color::srgb(0.8, 0.2, 0.2),
                 ..default()
             })),
             Transform::from_xyz(x, 0.5, z),
-            Enemy::default(),
-            CollisionRadius::new(0.6), // 碰撞半径略大于胶囊体半径（0.4）以提供缓冲
+            // 敌人标记
+            Enemy,
+            // 敌人属性
+            EnemyStats::default(),
+            // 碰撞检测
+            CollisionRadius::new(0.6),
+            // AI 组件
+            EnemyAIState::default(),
+            EnemyAIConfig::default(),
+            DetectionConfig::default(),
+            EnemyTarget::default(),
+            // 调试名称
             Name::new(format!("Enemy_{}", i)),
         ));
+
+        debug!("[Enemy] 生成敌人 {} at ({:.1}, {:.1})", i, x, z);
     }
 
-    info!("[Enemies] 3 enemies spawned");
+    info!("[Enemy] 敌人生成完成（共 3 个）");
 }
 
-fn enemy_chase_player(
-    player_query: Query<&Transform, With<Player>>,
-    mut enemy_query: Query<(&mut Transform, &Enemy), Without<Player>>,
-    time: Res<Time>,
-) {
-    let Ok(player_transform) = player_query.single() else {
-        return;
-    };
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-    for (mut enemy_transform, enemy) in enemy_query.iter_mut() {
-        let to_player = player_transform.translation - enemy_transform.translation;
-        let distance = to_player.length();
-
-        // 在追逐距离内且未到达停止距离
-        if distance < enemy.chase_distance && distance > enemy.stop_distance {
-            let direction = to_player.normalize();
-            let movement = direction * enemy.speed * time.delta_secs();
-
-            // 只在水平面移动（Y 轴保持不变）
-            enemy_transform.translation.x += movement.x;
-            enemy_transform.translation.z += movement.z;
-
-            // 朝向玩家
-            let look_direction = Vec3::new(direction.x, 0.0, direction.z);
-            if look_direction.length() > 0.001 {
-                enemy_transform.look_to(look_direction, Vec3::Y);
-            }
-        }
+    #[test]
+    fn test_enemy_stats_default() {
+        let stats = EnemyStats::default();
+        assert_eq!(stats.max_health, 100.0);
+        assert_eq!(stats.current_health, 100.0);
+        assert_eq!(stats.attack_power, 10.0);
     }
 }
