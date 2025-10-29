@@ -1,0 +1,17 @@
+[package]
+name = "vigilant-doodle-gameplay"
+version = "0.2.0"
+edition.workspace = true
+authors.workspace = true
+publish = false
+
+[lib]
+crate-type = ["rlib"]
+
+[dependencies]
+bevy = { workspace = true }
+rand = { workspace = true }
+vigilant-doodle-core = { path = "../core" }
+vigilant-doodle-input = { path = "../input" }
+vigilant-doodle-camera = { path = "../camera" }
+vigilant-doodle-world = { path = "../world" }

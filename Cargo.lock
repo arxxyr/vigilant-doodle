@@ -5276,19 +5276,93 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "49874b5167b65d7193b8aba1567f5c7d93d001cafc34600cee003eda787e483f"
 
 [[package]]
+name = "vigilant-doodle-ai"
+version = "0.2.0"
+dependencies = [
+ "bevy",
+ "vigilant-doodle-core",
+ "vigilant-doodle-gameplay",
+]
+
+[[package]]
+name = "vigilant-doodle-assets"
+version = "0.2.0"
+dependencies = [
+ "bevy",
+ "bevy_asset_loader",
+ "vigilant-doodle-core",
+]
+
+[[package]]
+name = "vigilant-doodle-audio"
+version = "0.2.0"
+dependencies = [
+ "bevy",
+ "vigilant-doodle-core",
+]
+
+[[package]]
+name = "vigilant-doodle-camera"
+version = "0.2.0"
+dependencies = [
+ "bevy",
+ "vigilant-doodle-core",
+]
+
+[[package]]
+name = "vigilant-doodle-core"
+version = "0.2.0"
+dependencies = [
+ "aes-gcm",
+ "bevy",
+ "bincode",
+ "crc32fast",
+ "dirs",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "vigilant-doodle-game"
 version = "0.2.0"
 dependencies = [
  "aes-gcm",
  "bevy",
  "bevy-inspector-egui",
- "bevy_asset_loader",
  "bincode",
  "crc32fast",
  "dirs",
- "rand",
  "serde",
  "serde_json",
+ "vigilant-doodle-ai",
+ "vigilant-doodle-assets",
+ "vigilant-doodle-audio",
+ "vigilant-doodle-camera",
+ "vigilant-doodle-core",
+ "vigilant-doodle-gameplay",
+ "vigilant-doodle-input",
+ "vigilant-doodle-ui",
+ "vigilant-doodle-world",
+]
+
+[[package]]
+name = "vigilant-doodle-gameplay"
+version = "0.2.0"
+dependencies = [
+ "bevy",
+ "rand",
+ "vigilant-doodle-camera",
+ "vigilant-doodle-core",
+ "vigilant-doodle-input",
+ "vigilant-doodle-world",
+]
+
+[[package]]
+name = "vigilant-doodle-input"
+version = "0.2.0"
+dependencies = [
+ "bevy",
+ "vigilant-doodle-core",
 ]
 
 [[package]]
@@ -5299,6 +5373,23 @@ dependencies = [
  "image 0.25.8",
  "vigilant-doodle-game",
  "winit",
+]
+
+[[package]]
+name = "vigilant-doodle-ui"
+version = "0.2.0"
+dependencies = [
+ "bevy",
+ "vigilant-doodle-assets",
+ "vigilant-doodle-core",
+]
+
+[[package]]
+name = "vigilant-doodle-world"
+version = "0.2.0"
+dependencies = [
+ "bevy",
+ "vigilant-doodle-core",
 ]
 
 [[package]]

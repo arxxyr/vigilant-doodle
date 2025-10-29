@@ -5,6 +5,15 @@ resolver = "2"
 members = [
     "crates/launcher",
     "crates/game",
+    "crates/core",
+    "crates/assets",
+    "crates/camera",
+    "crates/world",
+    "crates/input",
+    "crates/gameplay",
+    "crates/ai",
+    "crates/ui",
+    "crates/audio",
 ]
 default-members = ["crates/launcher"]
 

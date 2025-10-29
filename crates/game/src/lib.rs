@@ -1,46 +1,50 @@
-//! Vigilant Doodle - 游戏核心库
+//! Vigilant Doodle - 游戏集成库
 //!
 //! 基于 Bevy 0.17.2 的游戏引擎，采用 Workspace 架构。
-//! 当前仅包含资源加载和主菜单系统。
+//! 这是游戏的集成层，负责整合所有子 crates。
 
 #![allow(clippy::type_complexity)]
 
 // ============================================================================
-// 模块声明
+// 本地模块
 // ============================================================================
 
-mod assets;
-mod camera;
-mod core;
-mod ui;
-mod world;
-
-// AI 系统模块
-mod ai;
-// 游戏玩法模块
-mod gameplay;
-// 音频模块（当前为空）
-#[allow(unused)]
-mod audio;
-// 输入模块
-mod input;
+mod enemy_setup;
+mod save;
 
 // ============================================================================
-// 导入
+// 导入所有子 crates
 // ============================================================================
 
-use ai::EnemyAIPlugin;
-use assets::loader::AssetLoaderPlugin;
 use bevy::prelude::*;
-use camera::IsometricCameraPlugin;
-use core::localization::LocalizationPlugin;
-use core::save::SavePlugin;
-use core::state::StatePlugin;
-use gameplay::{EnemyPlugin, MovementPlugin, PlayerPlugin};
-use input::{CursorPlugin, InputPlugin};
-use ui::settings_menu::SettingsMenuPlugin;
-use ui::simple_menu::SimpleMenuPlugin;
-use world::SpawningPlugin;
+
+// 核心系统
+use vigilant_doodle_core::{LocalizationPlugin, SavePlugin, StatePlugin};
+
+// 本地模块插件
+use enemy_setup::EnemySetupPlugin;
+use save::GameSavePlugin;
+
+// 资源加载
+use vigilant_doodle_assets::AssetLoaderPlugin;
+
+// 相机系统
+use vigilant_doodle_camera::IsometricCameraPlugin;
+
+// 世界生成
+use vigilant_doodle_world::SpawningPlugin;
+
+// 输入系统
+use vigilant_doodle_input::{CursorPlugin, InputPlugin};
+
+// 游戏玩法
+use vigilant_doodle_gameplay::{EnemyPlugin, MovementPlugin, PlayerPlugin};
+
+// AI 系统
+use vigilant_doodle_ai::EnemyAIPlugin;
+
+// UI 系统
+use vigilant_doodle_ui::{SettingsMenuPlugin, SimpleMenuPlugin};
 
 // ============================================================================
 // 游戏主插件
@@ -56,8 +60,8 @@ impl Plugin for GamePlugin {
         info!("[Game] 加载游戏插件...");
 
         app
-            // 1. 核心系统（状态机、本地化、存档）
-            .add_plugins((StatePlugin, LocalizationPlugin, SavePlugin))
+            // 1. 核心系统（状态机、本地化、存档管理器）
+            .add_plugins((StatePlugin, LocalizationPlugin, SavePlugin, GameSavePlugin))
             // 2. 资源加载
             .add_plugins(AssetLoaderPlugin)
             // 3. 相机系统（斜向俯视）
@@ -66,11 +70,13 @@ impl Plugin for GamePlugin {
             .add_plugins(SpawningPlugin)
             // 5. 游戏玩法（玩家、敌人、移动）
             .add_plugins((PlayerPlugin, EnemyPlugin, MovementPlugin))
-            // 6. AI 系统（敌人行为）
+            // 6. 敌人 AI 设置（添加 AI 组件）
+            .add_plugins(EnemySetupPlugin)
+            // 7. AI 系统（敌人行为）
             .add_plugins(EnemyAIPlugin)
-            // 7. 输入系统（键盘、鼠标、光标）
+            // 8. 输入系统（键盘、鼠标、光标）
             .add_plugins((InputPlugin, CursorPlugin))
-            // 8. UI系统（主菜单、设置菜单）
+            // 9. UI系统（主菜单、设置菜单）
             .add_plugins((SimpleMenuPlugin, SettingsMenuPlugin));
 
         // Inspector 工具（可选启用）
@@ -97,4 +103,4 @@ impl Plugin for GamePlugin {
 // 导出公共类型
 // ============================================================================
 
-pub use core::state::GameState;
+pub use vigilant_doodle_core::GameState;

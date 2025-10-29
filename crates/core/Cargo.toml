@@ -1,0 +1,18 @@
+[package]
+name = "vigilant-doodle-core"
+version = "0.2.0"
+edition.workspace = true
+authors.workspace = true
+publish = false
+
+[lib]
+crate-type = ["rlib"]
+
+[dependencies]
+bevy = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+dirs = { workspace = true }
+bincode = { workspace = true }
+crc32fast = { workspace = true }
+aes-gcm = { workspace = true }

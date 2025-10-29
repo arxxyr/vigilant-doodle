@@ -13,15 +13,24 @@ crate-type = ["rlib", "dylib"]  # 同时支持静态和动态链接
 # 使用 workspace 依赖
 bevy = { workspace = true }
 
-# bevy_kira_audio = { workspace = true }  # 预留：未来添加音频时启用
-bevy_asset_loader = { workspace = true }
-rand = { workspace = true }
-serde = { workspace = true }
-serde_json = { workspace = true }
+# 引入所有子 crates
+vigilant-doodle-core = { path = "../core" }
+vigilant-doodle-assets = { path = "../assets" }
+vigilant-doodle-camera = { path = "../camera" }
+vigilant-doodle-world = { path = "../world" }
+vigilant-doodle-input = { path = "../input" }
+vigilant-doodle-gameplay = { path = "../gameplay" }
+vigilant-doodle-ai = { path = "../ai" }
+vigilant-doodle-ui = { path = "../ui" }
+vigilant-doodle-audio = { path = "../audio" }
+
+# 用于存档系统和 bin 工具
 dirs = { workspace = true }
 bincode = { workspace = true }
-crc32fast = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
 aes-gcm = { workspace = true }
+crc32fast = { workspace = true }
 
 # 可选依赖（通过 feature 启用）
 bevy-inspector-egui = { workspace = true, optional = true }
