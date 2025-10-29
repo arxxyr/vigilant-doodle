@@ -2,6 +2,10 @@
 //!
 //! 负责初始化 Bevy 引擎并加载游戏库。
 
+// Windows 发布模式下隐藏控制台窗口
+// Debug 模式保留控制台以便查看日志
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+
 use bevy::prelude::*;
 use vigilant_doodle_game::GamePlugin;
 

@@ -199,6 +199,13 @@ cargo bench
 - Web 构建在 Firefox 中可能有音频性能问题
 - Windows 发布模式不支持动态链接（dev feature）
 
+## 💡 平台特定说明
+
+### Windows
+- **发布版本**：不显示控制台窗口，像普通游戏一样启动
+- **开发版本**：显示控制台窗口，方便查看日志输出
+- 通过 `#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]` 自动控制
+
 ## 📄 许可证
 
 本项目基于 MIT 许可证（详见 LICENSE 文件）。
