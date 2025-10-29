@@ -40,6 +40,8 @@ pub struct PlayerBalance {
     pub gravity: f32,
     /// 敌人检测范围（多少距离内会朝向敌人）
     pub detection_range: f32,
+    /// 最大跳跃次数（1=单跳，2=二段跳）
+    pub max_jump_count: u32,
 }
 
 impl Default for PlayerBalance {
@@ -50,6 +52,7 @@ impl Default for PlayerBalance {
             jump_force: 7.5,
             gravity: -30.0,
             detection_range: 10.0,
+            max_jump_count: 2, // 默认二段跳
         }
     }
 }

@@ -15,6 +15,8 @@ pub struct Player {
     pub is_grounded: bool,       // 是否在地面
     pub ground_level: f32,       // 地面高度
     pub detection_range: f32,    // 敌人检测范围
+    pub max_jump_count: u32,     // 最大跳跃次数（1=单跳，2=二段跳）
+    pub jump_count: u32,         // 当前已跳跃次数
 }
 
 impl Player {
@@ -26,9 +28,11 @@ impl Player {
             jump_force: balance.player.jump_force,
             gravity: balance.player.gravity,
             detection_range: balance.player.detection_range,
+            max_jump_count: balance.player.max_jump_count,
             vertical_velocity: 0.0,
             is_grounded: true,
             ground_level: 0.0,
+            jump_count: 0,
         }
     }
 }
@@ -54,8 +58,8 @@ fn spawn_player(
     let player = Player::from_balance(&balance);
 
     info!(
-        "[Player] 玩家配置: 速度={}, 跳跃力={}",
-        player.speed, player.jump_force
+        "[Player] 玩家配置: 速度={}, 跳跃力={}, 最大跳跃次数={}",
+        player.speed, player.jump_force, player.max_jump_count
     );
 
     // 使用 glb 模型作为玩家
@@ -138,10 +142,19 @@ fn player_movement(
     const GROUND_THRESHOLD: f32 = 0.01; // 地面检测阈值
     player.is_grounded = transform.translation.y <= player.ground_level + GROUND_THRESHOLD;
 
-    // 如果在地面且按下跳跃键，施加跳跃力
-    if player.is_grounded && actions.jump {
+    // 在地面时重置跳跃次数
+    if player.is_grounded {
+        player.jump_count = 0;
+    }
+
+    // 按下跳跃键且还有跳跃次数（支持多段跳）
+    if actions.jump && player.jump_count < player.max_jump_count {
         player.vertical_velocity = player.jump_force;
-        info!("[Player] 跳跃！");
+        player.jump_count += 1;
+        info!(
+            "[Player] 跳跃！({}/{})",
+            player.jump_count, player.max_jump_count
+        );
     }
 
     // 应用重力（只要不在地面）

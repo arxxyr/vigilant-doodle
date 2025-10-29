@@ -4,7 +4,8 @@
     "rotation_speed": 10.0,
     "jump_force": 7.5,
     "gravity": -9.80,
-    "detection_range": 10.0
+    "detection_range": 10.0,
+    "max_jump_count": 2
   },
   "enemy": {
     "ai": {
