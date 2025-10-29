@@ -8,11 +8,15 @@ use bevy::prelude::*;
 #[derive(Component)]
 pub struct Player {
     pub speed: f32,
+    pub rotation_speed: f32, // 旋转速度（弧度/秒）
 }
 
 impl Default for Player {
     fn default() -> Self {
-        Self { speed: 10.0 }
+        Self {
+            speed: 10.0,
+            rotation_speed: 10.0, // 快速旋转
+        }
     }
 }
 
@@ -87,11 +91,20 @@ fn player_movement(
     let move_direction = (forward.with_y(0.0).normalize() * actions.movement.y)
         + (right.with_y(0.0).normalize() * actions.movement.x);
 
-    // 移动玩家
-    transform.translation += move_direction * player.speed * time.delta_secs();
+    // 如果有移动输入
+    if move_direction.length_squared() > 0.001 {
+        let move_direction = move_direction.normalize();
 
-    // 朝向移动方向
-    if move_direction.length() > 0.0 {
-        transform.look_to(move_direction, Vec3::Y);
+        // 移动玩家
+        transform.translation += move_direction * player.speed * time.delta_secs();
+
+        // 计算目标旋转（朝向移动方向）
+        let target_forward = move_direction;
+        let target_rotation = Quat::from_rotation_arc(Vec3::Z, target_forward);
+
+        // 使用球面线性插值（slerp）平滑旋转
+        // rotation_factor 限制在 [0, 1] 范围内
+        let rotation_factor = (player.rotation_speed * time.delta_secs()).clamp(0.0, 1.0);
+        transform.rotation = transform.rotation.slerp(target_rotation, rotation_factor);
     }
 }

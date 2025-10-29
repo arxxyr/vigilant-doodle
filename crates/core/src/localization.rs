@@ -1,9 +1,11 @@
 //! 本地化系统
 //!
 //! 提供多语言支持，包括中文和英文。
-//! 翻译文本从 JSON 文件加载。
+//! 翻译文本从 JSON 文件异步加载。
 
+use bevy::asset::{io::Reader, AssetLoader, LoadContext};
 use bevy::prelude::*;
+use bevy::tasks::ConditionalSendFuture;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -51,8 +53,8 @@ impl Language {
 // 翻译数据结构
 // ============================================================================
 
-/// 翻译文件的根结构
-#[derive(Debug, Clone, Serialize, Deserialize)]
+/// 翻译文件的根结构（作为 Bevy Asset）
+#[derive(Debug, Clone, Serialize, Deserialize, Asset, TypePath)]
 pub struct Translations {
     pub menu: MenuTranslations,
     pub game: GameTranslations,
@@ -103,6 +105,41 @@ pub struct SettingsTranslations {
 }
 
 // ============================================================================
+// Asset Loader
+// ============================================================================
+
+/// JSON 翻译文件的 AssetLoader
+#[derive(Default)]
+pub struct TranslationsLoader;
+
+impl AssetLoader for TranslationsLoader {
+    type Asset = Translations;
+    type Settings = ();
+    type Error = std::io::Error;
+
+    fn load(
+        &self,
+        reader: &mut dyn Reader,
+        _settings: &Self::Settings,
+        _load_context: &mut LoadContext,
+    ) -> impl ConditionalSendFuture<Output = Result<Self::Asset, Self::Error>> {
+        async move {
+            let mut bytes = Vec::new();
+            reader.read_to_end(&mut bytes).await?;
+
+            let translations: Translations = serde_json::from_slice(&bytes)
+                .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))?;
+
+            Ok(translations)
+        }
+    }
+
+    fn extensions(&self) -> &[&str] {
+        &["json"]
+    }
+}
+
+// ============================================================================
 // 资源
 // ============================================================================
 
@@ -124,12 +161,43 @@ impl Default for CurrentLanguage {
 /// 翻译资源
 ///
 /// 存储所有语言的翻译数据
-#[derive(Resource, Default)]
+#[derive(Resource)]
 pub struct TranslationResources {
+    /// 翻译文件的句柄
+    handles: HashMap<Language, Handle<Translations>>,
+    /// 缓存的翻译数据（从 Assets 中提取）
     translations: HashMap<Language, Translations>,
 }
 
+impl Default for TranslationResources {
+    fn default() -> Self {
+        Self {
+            handles: HashMap::new(),
+            translations: HashMap::new(),
+        }
+    }
+}
+
 impl TranslationResources {
+    /// 设置翻译文件句柄
+    pub fn set_handle(&mut self, language: Language, handle: Handle<Translations>) {
+        self.handles.insert(language, handle);
+    }
+
+    /// 从 Assets 中更新翻译数据
+    pub fn update_from_assets(&mut self, assets: &Assets<Translations>) {
+        for (language, handle) in &self.handles {
+            if let Some(translations) = assets.get(handle) {
+                self.translations.insert(*language, translations.clone());
+            }
+        }
+    }
+
+    /// 检查所有翻译是否已加载
+    pub fn all_loaded(&self) -> bool {
+        self.translations.len() == self.handles.len() && !self.handles.is_empty()
+    }
+
     /// 获取指定语言和键的翻译文本
     pub fn get(&self, language: Language, key: &str) -> String {
         let Some(translations) = self.translations.get(&language) else {
@@ -186,11 +254,6 @@ impl TranslationResources {
             }
         }
     }
-
-    /// 插入翻译数据
-    pub fn insert(&mut self, language: Language, translations: Translations) {
-        self.translations.insert(language, translations);
-    }
 }
 
 // ============================================================================
@@ -223,8 +286,10 @@ impl Plugin for LocalizationPlugin {
         app.init_resource::<CurrentLanguage>()
             .init_resource::<TranslationResources>()
             .register_type::<CurrentLanguage>()
-            .add_systems(Startup, load_translations)
-            .add_systems(Update, update_localized_text);
+            .init_asset::<Translations>()
+            .init_asset_loader::<TranslationsLoader>()
+            .add_systems(Startup, load_translation_handles)
+            .add_systems(Update, (update_translation_data, update_localized_text).chain());
 
         info!("[Localization] 本地化系统已加载");
     }
@@ -234,119 +299,46 @@ impl Plugin for LocalizationPlugin {
 // 系统
 // ============================================================================
 
-/// 加载所有语言的翻译文件
-fn load_translations(
+/// 加载翻译文件句柄
+fn load_translation_handles(
     asset_server: Res<AssetServer>,
     mut translation_resources: ResMut<TranslationResources>,
 ) {
     info!("[Localization] 开始加载翻译文件...");
 
     // 加载中文翻译
-    if let Some(_zh_bytes) = asset_server
-        .load_untyped(Language::Chinese.file_path())
-        .path()
-        .as_ref()
-    {
-        // 注意：这里我们需要在资源加载完成后再解析
-        // 为了简化，我们先使用硬编码的备用翻译
-    }
+    let zh_handle: Handle<Translations> = asset_server.load(Language::Chinese.file_path());
+    translation_resources.set_handle(Language::Chinese, zh_handle);
 
-    // 由于 Bevy 的资源加载是异步的，我们需要提供备用翻译
-    // 这里使用硬编码的翻译作为备用
-    load_fallback_translations(&mut translation_resources);
+    // 加载英文翻译
+    let en_handle: Handle<Translations> = asset_server.load(Language::English.file_path());
+    translation_resources.set_handle(Language::English, en_handle);
 
-    info!("[Localization] 翻译文件加载完成");
+    info!(
+        "[Localization] 翻译文件句柄已创建: {:?}, {:?}",
+        Language::Chinese.file_path(),
+        Language::English.file_path()
+    );
 }
 
-/// 加载备用翻译（硬编码）
-fn load_fallback_translations(translation_resources: &mut TranslationResources) {
-    // 中文翻译
-    translation_resources.insert(
-        Language::Chinese,
-        Translations {
-            menu: MenuTranslations {
-                title: "Vigilant Doodle".to_string(),
-                new_game: "新游戏".to_string(),
-                resume: "继续游戏".to_string(),
-                save_game: "存档".to_string(),
-                settings: "设置".to_string(),
-                back_to_menu: "返回主菜单".to_string(),
-                quit: "退出游戏".to_string(),
-            },
-            game: GameTranslations {
-                paused: "暂停".to_string(),
-                resume: "继续".to_string(),
-                back_to_menu: "返回主菜单".to_string(),
-            },
-            settings: SettingsTranslations {
-                title: "设置".to_string(),
-                appearance: "外观".to_string(),
-                graphics: "图形".to_string(),
-                audio: "声音".to_string(),
-                controls: "控制".to_string(),
-                gameplay: "游戏性".to_string(),
-                back: "返回".to_string(),
-                language: "语言".to_string(),
-                language_chinese: "中文".to_string(),
-                language_english: "English".to_string(),
-                volume_master: "主音量".to_string(),
-                volume_music: "音乐音量".to_string(),
-                volume_sfx: "音效音量".to_string(),
-                resolution: "分辨率".to_string(),
-                fullscreen: "全屏".to_string(),
-                vsync: "垂直同步".to_string(),
-                difficulty: "难度".to_string(),
-                auto_save: "自动保存".to_string(),
-                mouse_sensitivity: "鼠标灵敏度".to_string(),
-                invert_y: "反转 Y 轴".to_string(),
-                key_bindings: "按键绑定".to_string(),
-            },
-        },
-    );
+/// 更新翻译数据
+///
+/// 从 Assets 中提取已加载的翻译数据到缓存
+fn update_translation_data(
+    translations_assets: Res<Assets<Translations>>,
+    mut translation_resources: ResMut<TranslationResources>,
+) {
+    // 仅在翻译资源变化时更新
+    if translations_assets.is_changed() {
+        let was_loaded = translation_resources.all_loaded();
+        translation_resources.update_from_assets(&translations_assets);
+        let now_loaded = translation_resources.all_loaded();
 
-    // 英文翻译
-    translation_resources.insert(
-        Language::English,
-        Translations {
-            menu: MenuTranslations {
-                title: "Vigilant Doodle".to_string(),
-                new_game: "New Game".to_string(),
-                resume: "Resume".to_string(),
-                save_game: "Save/Load".to_string(),
-                settings: "Settings".to_string(),
-                back_to_menu: "Back to Menu".to_string(),
-                quit: "Quit".to_string(),
-            },
-            game: GameTranslations {
-                paused: "Paused".to_string(),
-                resume: "Resume".to_string(),
-                back_to_menu: "Back to Menu".to_string(),
-            },
-            settings: SettingsTranslations {
-                title: "Settings".to_string(),
-                appearance: "Appearance".to_string(),
-                graphics: "Graphics".to_string(),
-                audio: "Audio".to_string(),
-                controls: "Controls".to_string(),
-                gameplay: "Gameplay".to_string(),
-                back: "Back".to_string(),
-                language: "Language".to_string(),
-                language_chinese: "中文".to_string(),
-                language_english: "English".to_string(),
-                volume_master: "Master Volume".to_string(),
-                volume_music: "Music Volume".to_string(),
-                volume_sfx: "SFX Volume".to_string(),
-                resolution: "Resolution".to_string(),
-                fullscreen: "Fullscreen".to_string(),
-                vsync: "V-Sync".to_string(),
-                difficulty: "Difficulty".to_string(),
-                auto_save: "Auto Save".to_string(),
-                mouse_sensitivity: "Mouse Sensitivity".to_string(),
-                invert_y: "Invert Y Axis".to_string(),
-                key_bindings: "Key Bindings".to_string(),
-            },
-        },
-    );
+        // 首次完成加载时记录日志
+        if !was_loaded && now_loaded {
+            info!("[Localization] 所有翻译文件加载完成");
+        }
+    }
 }
 
 /// 更新本地化文本系统
@@ -357,16 +349,25 @@ fn update_localized_text(
     translation_resources: Res<TranslationResources>,
     mut text_query: Query<(&LocalizedText, &mut Text)>,
 ) {
-    if !current_language.is_changed() {
+    // 检查语言是否改变 或 翻译资源是否刚加载完成
+    if !current_language.is_changed() && !translation_resources.is_changed() {
         return;
     }
 
-    // 语言改变了，更新所有文本
+    // 确保翻译已加载
+    if !translation_resources.all_loaded() {
+        return;
+    }
+
+    // 语言改变了或翻译刚加载，更新所有文本
     for (localized, mut text) in text_query.iter_mut() {
         **text = translation_resources.get(current_language.language, &localized.key);
     }
-    info!(
-        "[Localization] 语言已切换到: {:?}",
-        current_language.language
-    );
+
+    if current_language.is_changed() {
+        info!(
+            "[Localization] 语言已切换到: {:?}",
+            current_language.language
+        );
+    }
 }

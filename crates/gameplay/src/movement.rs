@@ -3,6 +3,15 @@ use crate::{Enemy, Player};
 use vigilant_doodle_world::terrain::{FLOOR_HALF_LENGTH, FLOOR_HALF_WIDTH};
 use bevy::prelude::*;
 
+/// 移动系统集合（定义执行顺序）
+#[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
+pub enum MovementSystemSet {
+    /// 碰撞分离（先执行）
+    Separation,
+    /// 地形限制（后执行）
+    TerrainClamping,
+}
+
 /// 碰撞体积组件（圆形碰撞）
 #[derive(Component)]
 pub struct CollisionRadius {
@@ -19,15 +28,26 @@ pub struct MovementPlugin;
 
 impl Plugin for MovementPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(
-            Update,
-            (
-                clamp_to_terrain,
-                separate_entities, // 分离重叠的实体
+        app
+            // 配置系统集合的执行顺序
+            .configure_sets(
+                Update,
+                (
+                    MovementSystemSet::Separation,
+                    MovementSystemSet::TerrainClamping,
+                )
+                    .chain() // 先碰撞分离，再地形限制
+                    .run_if(in_state(GameState::Playing)),
             )
-                .chain()
-                .run_if(in_state(GameState::Playing)),
-        );
+            // 添加系统到对应的集合
+            .add_systems(
+                Update,
+                separate_entities.in_set(MovementSystemSet::Separation),
+            )
+            .add_systems(
+                Update,
+                clamp_to_terrain.in_set(MovementSystemSet::TerrainClamping),
+            );
     }
 }
 
@@ -48,6 +68,10 @@ fn clamp_to_terrain(mut query: Query<&mut Transform, Or<(With<Player>, With<Enem
 fn separate_entities(
     mut query: Query<(Entity, &mut Transform, &CollisionRadius), Or<(With<Player>, With<Enemy>)>>,
 ) {
+    // 碰撞分离参数
+    const SEPARATION_DAMPING: f32 = 0.3; // 阻尼系数（降低推力强度）
+    const MIN_OVERLAP_THRESHOLD: f32 = 0.05; // 最小重叠阈值（小于此值不推开）
+
     let mut combinations = query.iter_combinations_mut();
 
     while let Some(
@@ -60,11 +84,13 @@ fn separate_entities(
         let delta = transform_a.translation - transform_b.translation;
         let distance = delta.length();
         let min_distance = radius_a.radius + radius_b.radius;
+        let overlap = min_distance - distance;
 
-        // 如果重叠，则推开
-        if distance < min_distance && distance > 0.001 {
+        // 如果重叠超过阈值，则推开
+        if overlap > MIN_OVERLAP_THRESHOLD && distance > 0.001 {
             let push_direction = delta.normalize();
-            let push_amount = (min_distance - distance) * 0.5; // 每个实体各推开一半
+            // 应用阻尼系数，使推力更平滑
+            let push_amount = overlap * 0.5 * SEPARATION_DAMPING;
 
             // 只在水平面推开（保持 Y 轴不变）
             let push = Vec3::new(
