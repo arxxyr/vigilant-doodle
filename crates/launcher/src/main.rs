@@ -5,6 +5,15 @@
 use bevy::prelude::*;
 use vigilant_doodle_game::GamePlugin;
 
+// ============================================================================
+// 全局内存分配器
+// ============================================================================
+
+use mimalloc::MiMalloc;
+
+#[global_allocator]
+static GLOBAL: MiMalloc = MiMalloc;
+
 fn main() {
     info!("[Launcher] 正在启动 Vigilant Doodle...");
 

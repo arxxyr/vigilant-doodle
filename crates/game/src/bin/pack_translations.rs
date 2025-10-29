@@ -17,7 +17,7 @@ use std::path::Path;
 // 数据结构（与 localization.rs 保持一致）
 // ============================================================================
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, bincode::Encode, bincode::Decode)]
 struct MenuTranslations {
     title: String,
     new_game: String,
@@ -29,7 +29,7 @@ struct MenuTranslations {
     quit: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, bincode::Encode, bincode::Decode)]
 struct SettingsTranslations {
     title: String,
     graphics: String,
@@ -39,7 +39,7 @@ struct SettingsTranslations {
     back: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, bincode::Encode, bincode::Decode)]
 struct GameplayTranslations {
     paused: String,
     game_over: String,
@@ -48,7 +48,7 @@ struct GameplayTranslations {
     health: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, bincode::Encode, bincode::Decode)]
 struct Translations {
     menu: MenuTranslations,
     settings: SettingsTranslations,
@@ -63,7 +63,7 @@ const ENCRYPTION_KEY: &[u8; 32] = b"VigilantDoodle_AES256_Key_2025!!";
 const MAGIC_NUMBER: u32 = 0x56444232; // VDB2
 const NONCE_SIZE: usize = 12;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, bincode::Encode, bincode::Decode)]
 struct EncryptedFile {
     magic: u32,
     version: u32,
@@ -95,7 +95,8 @@ fn encrypt(data: &[u8]) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
         data: encrypted_data,
     };
 
-    Ok(bincode::serialize(&encrypted_file)?)
+    // 使用 bincode 2.0 API 序列化
+    Ok(bincode::encode_to_vec(&encrypted_file, bincode::config::standard())?)
 }
 
 // ============================================================================
@@ -128,8 +129,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let translations: Translations = serde_json::from_str(&json_content)?;
         println!("  ✓ 验证 JSON 格式");
 
-        // 序列化为二进制
-        let binary_data = bincode::serialize(&translations)?;
+        // 序列化为二进制（使用 bincode 2.0 API）
+        let binary_data = bincode::encode_to_vec(&translations, bincode::config::standard())?;
         println!("  ✓ 序列化为二进制: {} 字节", binary_data.len());
 
         // 加密

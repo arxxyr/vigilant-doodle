@@ -32,6 +32,7 @@ dirs = { version = "6.0.0" }
 bincode = { version = "2.0.1" }
 crc32fast = { version = "1.4" }
 aes-gcm = { version = "0.10" }
+mimalloc = { version = "0.1" }
 
 # Workspace 级别的包配置
 [workspace.package]

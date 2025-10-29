@@ -9,9 +9,11 @@
 ### 核心特性
 - **引擎**：Bevy 0.17.2
 - **语言**：Rust Edition 2024
-- **架构**：Workspace（launcher + game）
+- **架构**：Workspace（11 个独立 crate 模块）
 - **视角**：斜向俯视 45°
 - **平台**：Windows / Linux / macOS / Web
+- **存档**：加密存档（AES-256-GCM + bincode 2.0）
+- **本地化**：异步加载翻译文件，支持加密二进制格式
 
 ---
 
@@ -23,45 +25,61 @@ vigilant-doodle/
 ├── crates/
 │   ├── launcher/           # 启动器（可执行程序）
 │   │   └── src/main.rs     # ~100 行，负责初始化
-│   └── game/               # 游戏逻辑（动态库）
-│       └── src/
-│           ├── lib.rs      # 插件注册中心
-│           ├── core/       # 状态机、设置
-│           ├── assets/     # 资源加载
-│           ├── camera/     # 斜向俯视相机
-│           ├── gameplay/   # 玩家、敌人、移动
-│           ├── world/      # 地形、生成
-│           ├── ui/         # 菜单、HUD
-│           ├── input/      # 输入、光标
-│           └── audio/      # 音频
+│   ├── game/               # 游戏主 crate（插件注册中心）
+│   │   └── src/
+│   │       ├── lib.rs      # 插件注册
+│   │       ├── save.rs     # 存档系统（顶层）
+│   │       ├── enemy_setup.rs  # 敌人生成
+│   │       └── bin/
+│   │           └── pack_translations.rs  # 翻译打包工具
+│   ├── core/               # 核心系统
+│   │   └── src/
+│   │       ├── state.rs    # 状态机
+│   │       ├── settings.rs # 游戏设置
+│   │       └── save/       # 存档加密模块
+│   ├── assets/             # 资源加载（bevy_asset_loader）
+│   ├── camera/             # 斜向俯视相机系统
+│   ├── world/              # 世界生成与地形
+│   ├── input/              # 输入处理与光标
+│   ├── gameplay/           # 玩家控制逻辑
+│   ├── ai/                 # 敌人 AI 行为
+│   ├── ui/                 # UI 菜单与 HUD
+│   └── audio/              # 音频系统（预留）
 ├── assets/                 # 游戏资源（共享）
+├── scripts/                # 构建与打包脚本
+│   ├── quick-build.sh      # 快速构建（Linux/macOS）
+│   ├── package-linux.sh    # Linux 打包
+│   └── package-windows.ps1 # Windows 打包
 └── docs/                   # 技术文档
 ```
 
 ### 设计原则
-1. **职责分离**：启动器只负责初始化，游戏逻辑全在 game crate
-2. **动态链接**：开发模式使用 dylib 加速编译
-3. **模块化**：每个模块独立，通过插件注册
+1. **职责分离**：启动器只负责初始化，游戏逻辑拆分为 11 个独立 crate
+2. **单向依赖**：所有 crate 依赖 core，避免循环依赖
+3. **动态链接**：开发模式使用 dylib 加速编译（仅 game crate）
+4. **插件化**：每个 crate 提供独立插件，由 game crate 统一注册
+5. **安全存档**：使用 AES-256-GCM 加密，bincode 2.0 序列化，CRC32 校验
 
 ---
 
 ## 核心概念
 
 ### 状态机（GameState）
-定义在 `crates/game/src/core/state.rs`：
+定义在 `crates/core/src/state.rs`：
 ```rust
 pub enum GameState {
     AssetLoading,    // 资源加载（默认状态）
     MainMenu,        // 主菜单（游戏场景 + 模糊遮罩 + UI）
     Playing,         // 游戏进行
+    Paused,          // 暂停（显示暂停菜单）
 }
 ```
 
 **流程**：
 ```
-AssetLoading → MainMenu → Playing
+AssetLoading → MainMenu → Playing ⇄ Paused
                   ↑           ↓
-                  └─── ESC ───┘
+                  └─── Quit ──┘
 ```
 
 ### 单相机架构
@@ -105,12 +123,26 @@ cargo build --release
 
 # 仅构建游戏库
 cargo build -p vigilant-doodle-game
+
+# 使用打包脚本（推荐）
+./scripts/quick-build.sh                    # 快速构建（Linux/macOS）
+./scripts/package-linux.sh [版本号]         # Linux 打包
+.\scripts\package-windows.ps1 [-Version]    # Windows 打包
 ```
 
 ### 代码质量
 ```bash
 cargo fmt --all
 cargo clippy --workspace -- -D warnings
+```
+
+### 翻译打包工具
+```bash
+# 将 JSON 翻译文件转为加密二进制格式
+cargo run --bin pack_translations
+
+# 输入：assets/localization/*.json
+# 输出：assets/localization/*.dat
 ```
 
 ---
@@ -208,6 +240,54 @@ let player = player_query.get_single().expect("Player not found");
 
 ---
 
+## 存档与加密系统
+
+### 存档系统架构
+定义在 `crates/core/src/save/` 和 `crates/game/src/save.rs`：
+
+```rust
+// 核心加密模块（core crate）
+pub struct SaveManager {
+    save_path: PathBuf,
+    key: [u8; 32],  // AES-256 密钥
+}
+
+// 游戏存档数据（game crate）
+pub struct SaveData {
+    pub version: u32,
+    pub timestamp: u64,
+    pub player: PlayerSaveData,
+    pub enemies: Vec<EnemySaveData>,
+    pub has_active_game: bool,
+}
+```
+
+### 加密流程
+1. **序列化**：使用 bincode 2.0 将数据结构转为二进制
+2. **加密**：使用 AES-256-GCM 加密二进制数据
+3. **校验**：计算 CRC32 校验和
+4. **存储**：写入 `save.dat` 文件
+
+### 翻译打包工具
+定义在 `crates/game/src/bin/pack_translations.rs`：
+
+```bash
+# 运行工具
+cargo run --bin pack_translations
+
+# 工作流程：
+# 1. 读取 assets/localization/*.json
+# 2. 使用 AES-256-GCM 加密
+# 3. 输出 assets/localization/*.dat
+```
+
+**加密原因**：
+- 防止用户直接修改翻译文件
+- 减小文件体积（二进制格式）
+- 加快加载速度（无需 JSON 解析）
+
+---
+
 ## 资源管理
 
 ### 资源预加载
@@ -237,18 +317,18 @@ assets.load("../assets/model/player.glb")  // ❌ 错误
 ## 常见任务
 
 ### 添加新的游戏系统
-1. 在 `crates/game/src/` 创建新模块
+1. 在对应的 `crates/` 目录创建或修改模块
 2. 定义组件和系统
 3. 创建插件并实现 `Plugin` trait
 4. 在 `crates/game/src/lib.rs` 注册插件
 
 ### 修改状态机
-编辑 `crates/game/src/core/state.rs`：
+编辑 `crates/core/src/state.rs`：
 - 添加新状态到 `GameState` 枚举
 - 在 `StatePlugin` 中添加状态转换逻辑
 
 ### 调整相机参数
-编辑 `crates/game/src/camera/isometric.rs`：
+编辑 `crates/camera/src/isometric.rs`：
 ```rust
 pub struct IsometricCamera {
     pub offset: Vec3,          // 相机偏移（默认: 0, 12, 10）
@@ -258,9 +338,33 @@ pub struct IsometricCamera {
 ```
 
 ### 添加 UI 元素
-在 `crates/game/src/ui/` 对应模块：
+在 `crates/ui/src/` 对应模块：
 - `menu/` - 菜单相关
 - `hud/` - 游戏内 HUD
+- `pause/` - 暂停菜单
+
+### 存档系统使用
+```rust
+use vigilant_doodle_core::save::SaveManager;
+
+// 保存游戏
+fn save_game(save_manager: Res<SaveManager>, /* 其他查询 */) {
+    let save_data = SaveData { /* ... */ };
+    if let Err(e) = save_manager.save(&save_data) {
+        error!("[Save] 保存失败: {}", e);
+    }
+}
+
+// 加载游戏
+fn load_game(save_manager: Res<SaveManager>) -> Option<SaveData> {
+    save_manager.load().ok()
+}
+```
+
+存档位置：
+- Windows: `%APPDATA%/vigilant-doodle/save.dat`
+- Linux: `~/.local/share/vigilant-doodle/save.dat`
+- macOS: `~/Library/Application Support/vigilant-doodle/save.dat`
 
 ---
 
@@ -316,9 +420,14 @@ GitHub Actions 将构建：
 |----|----|------|
 | bevy | 0.17.2 | 游戏引擎 |
 | bevy_asset_loader | 0.24.0-rc.1 | 资源预加载 |
-| bevy_kira_audio | 0.24.0 | 音频播放 |
+| bevy_egui | 0.38.0 | Inspector UI |
+| bevy-inspector-egui | 0.35.0 | 调试工具（dev） |
 | rand | 0.9.2 | 随机数生成 |
-| bevy-inspector-egui | 0.34.0 | 调试工具（dev） |
+| bincode | 2.0.1 | 二进制序列化 |
+| aes-gcm | 0.10 | 加密存档 |
+| crc32fast | 1.4 | 校验和计算 |
+| serde / serde_json | 1.0 | JSON 序列化 |
+| dirs | 6.0.0 | 系统目录获取 |
 
 ---
 
@@ -360,16 +469,40 @@ GitHub Actions 将构建：
 
 ## 代码提交规范
 
-遵循 Conventional Commits：
+遵循 Conventional Commits（**不使用 scope 括号**）：
 ```
-feat(camera): 实现斜向俯视相机系统
-fix(player): 修复边界碰撞检测
-refactor(ui): 重构菜单系统为组件化结构
+feat: 实现斜向俯视相机系统
+fix: 修复边界碰撞检测
+refactor: 重构菜单系统为组件化结构
 docs: 更新架构文档
 ```
 
+**类型说明**：
+- `feat` - 新功能
+- `fix` - 修复 Bug
+- `refactor` - 重构代码
+- `docs` - 文档更新
+- `test` - 测试相关
+- `chore` - 构建/工具相关
+- `style` - 代码格式
+- `perf` - 性能优化
+- `build` - 构建系统
+- `ci` - CI/CD 相关
+- `revert` - 回滚提交
+
+**重要**：根据项目配置，commit message 中**不包含** Claude Code 的署名信息。
+
 ---
 
-最后更新：2025-10-19
-Bevy 版本：0.17.2
-架构版本：v2.0 (Workspace)
+---
+
+**最后更新**：2025-10-30
+**项目版本**：v0.3.0
+**Bevy 版本**：0.17.2
+**架构版本**：v3.0 (11-Crate Workspace + 完整存档系统 + AI 系统)
+
+**项目状态**：✅ 生产就绪
+- 核心功能完整（玩家移动、敌人 AI、暂停菜单、存档系统）
+- 跨平台构建脚本完成（Linux/Windows）
+- 多语言支持完整（中文/English）
+- 性能优化完成（移动抖动修复、异步加载）

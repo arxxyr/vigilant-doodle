@@ -5,6 +5,7 @@ use bevy::prelude::*;
 #[derive(Resource, Default)]
 pub struct InputActions {
     pub movement: Vec2,
+    pub jump: bool, // 本帧是否按下跳跃键
 }
 
 /// 游戏控制键位
@@ -13,6 +14,7 @@ pub enum GameControl {
     Backward,
     Left,
     Right,
+    Jump,
 }
 
 impl GameControl {
@@ -22,6 +24,7 @@ impl GameControl {
             Self::Backward => KeyCode::KeyS,
             Self::Left => KeyCode::KeyA,
             Self::Right => KeyCode::KeyD,
+            Self::Jump => KeyCode::Space,
         }
     }
 }
@@ -63,6 +66,9 @@ fn process_input(keyboard: Res<ButtonInput<KeyCode>>, mut actions: ResMut<InputA
     }
 
     actions.movement = direction;
+
+    // 跳跃输入（just_pressed 确保只在按下瞬间触发）
+    actions.jump = keyboard.just_pressed(GameControl::Jump.key());
 }
 
 /// 处理 ESC 键的暂停/恢复切换

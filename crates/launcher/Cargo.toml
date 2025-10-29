@@ -22,6 +22,9 @@ vigilant-doodle-game = { path = "../game" }
 winit = { version = "0.30.12", default-features = false }
 image = { version = "0.25.8", default-features = false, features = ["png"] }
 
+# 内存分配器
+mimalloc = { workspace = true }
+
 [features]
 # 开发模式：启用动态链接加速编译
 dev = ["bevy/dynamic_linking"]
