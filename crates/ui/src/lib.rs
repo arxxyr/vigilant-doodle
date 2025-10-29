@@ -4,10 +4,10 @@
 
 #![allow(clippy::type_complexity)]
 
-// 主菜单系统
+// 菜单系统
+pub mod menu;
 pub mod settings_menu;
-pub mod simple_menu;
 
 // 重新导出常用类型
+pub use menu::MenuPlugin;
 pub use settings_menu::SettingsMenuPlugin;
-pub use simple_menu::MenuPlugin;

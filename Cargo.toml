@@ -34,6 +34,12 @@ crc32fast = { version = "1.4" }
 aes-gcm = { version = "0.10" }
 mimalloc = { version = "0.1" }
 
+# Fluent i18n 相关
+fluent = { version = "0.17.0" }
+fluent-bundle = { version = "0.16.0" }
+unic-langid = { version = "0.9", features = ["unic-langid-macros"] }
+intl-memoizer = { version = "0.5" }
+
 # Workspace 级别的包配置
 [workspace.package]
 edition = "2024"

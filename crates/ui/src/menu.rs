@@ -1,359 +1,353 @@
+//! 主菜单系统
+//!
+//! 提供游戏的核心菜单功能，包括：
+//! - 新游戏/继续游戏
+//! - 存档/读档
+//! - 设置菜单导航
+//! - 语言切换
+//! - 暂停菜单
+//!
+//! ## 使用方式
+//!
+//! 该模块导出 `MenuPlugin`，在游戏初始化时注册：
+//! ```rust,ignore
+//! app.add_plugins(MenuPlugin);
+//! ```
+//!
+//! ## 菜单状态
+//!
+//! - **主菜单** (`GameState::MainMenu`)：游戏启动时显示
+//! - **暂停菜单** (`GameState::Paused`)：游戏进行中按 ESC 显示
+
+use super::settings_menu::SettingsMenuState;
+use vigilant_doodle_assets::GameAssets;
+use vigilant_doodle_core::localization::{CurrentLanguage, LocalizedText, TranslationResources};
+use vigilant_doodle_core::save::SaveManager;
+use vigilant_doodle_core::state::{GameProgress, GameState};
 use bevy::prelude::*;
-use crate::core::state::{GameState, MenuState};
-use crate::core::localization::{CurrentLanguage, LocalizedText};
-use crate::assets::loader::GameAssets;
-use super::components::*;
-use super::styles::*;
 
-/// 菜单覆盖层插件（半透明背景）
-pub struct MenuOverlayPlugin;
+// ============================================================================
+// 常量定义
+// ============================================================================
 
-impl Plugin for MenuOverlayPlugin {
+const NORMAL_BUTTON: Color = Color::srgb(0.15, 0.15, 0.15);
+const HOVERED_BUTTON: Color = Color::srgb(0.25, 0.25, 0.25);
+const PRESSED_BUTTON: Color = Color::srgb(0.35, 0.75, 0.35);
+
+// ============================================================================
+// 组件定义
+// ============================================================================
+
+/// 标记：菜单UI根节点（用于管理显示/隐藏）
+#[derive(Component)]
+struct MenuRoot;
+
+/// 按钮动作
+#[derive(Component)]
+enum MenuButtonAction {
+    NewGame,        // 新游戏
+    Resume,         // 继续游戏（恢复）
+    SaveGame,       // 存档
+    Settings,       // 设置
+    BackToMainMenu, // 返回主菜单（从暂停返回）
+    Quit,           // 退出
+    ToggleLanguage, // 切换语言
+}
+
+/// 标记：语言按钮的文本
+#[derive(Component)]
+struct LanguageButtonText;
+
+// ============================================================================
+// 插件定义
+// ============================================================================
+
+pub struct MenuPlugin;
+
+impl Plugin for MenuPlugin {
     fn build(&self, app: &mut App) {
         app
-            .add_systems(OnEnter(GameState::MainMenu), spawn_overlay)
-            .add_systems(OnExit(GameState::MainMenu), despawn_overlay);
-    }
-}
-
-fn spawn_overlay(mut commands: Commands) {
-    // 全屏半透明黑色背景
-    commands.spawn((
-        Node {
-            width: Val::Percent(100.0),
-            height: Val::Percent(100.0),
-            position_type: PositionType::Absolute,
-            ..default()
-        },
-        BackgroundColor(MenuStyle::BACKGROUND_COLOR),
-        ZIndex(5),
-        MenuOverlay,
-        Name::new("MenuOverlay"),
-    ));
-
-    // 测试：在屏幕中央添加一个明显的红色方块
-    commands.spawn((
-        Node {
-            width: Val::Px(200.0),
-            height: Val::Px(200.0),
-            position_type: PositionType::Absolute,
-            left: Val::Percent(50.0),
-            top: Val::Percent(50.0),
-            ..default()
-        },
-        BackgroundColor(Color::srgb(1.0, 0.0, 0.0)),  // 纯红色
-        ZIndex(100),  // 最高层级
-        Name::new("TestRedBox"),
-    ));
-
-    info!("[UI] Menu overlay spawned (with test red box)");
-}
-
-fn despawn_overlay(
-    mut commands: Commands,
-    query: Query<Entity, With<MenuOverlay>>,
-) {
-    for entity in query.iter() {
-        commands.entity(entity).despawn();
-    }
-
-    info!("[UI] Menu overlay despawned");
-}
-
-/// 主菜单插件
-pub struct MainMenuPlugin;
-
-impl Plugin for MainMenuPlugin {
-    fn build(&self, app: &mut App) {
-        app
-            .add_systems(OnEnter(MenuState::Main), spawn_main_menu)
-            .add_systems(OnExit(MenuState::Main), despawn_main_menu)
+            // 进入主菜单时生成UI
+            .add_systems(OnEnter(GameState::MainMenu), setup_menu)
+            // 进入暂停菜单时生成UI
+            .add_systems(OnEnter(GameState::Paused), setup_menu)
+            // 进入 Playing 状态时隐藏菜单
+            .add_systems(OnEnter(GameState::Playing), hide_menu)
+            // 退出主菜单和暂停菜单时清理UI
+            .add_systems(OnExit(GameState::MainMenu), cleanup_menu)
+            .add_systems(OnExit(GameState::Paused), cleanup_menu)
+            // 更新按钮交互和语言按钮文本
             .add_systems(
                 Update,
-                (
-                    button_interaction_system,
-                    button_action_system,
-                    update_language_button_text,
-                )
-                    .run_if(in_state(GameState::MainMenu))
-                    .run_if(in_state(MenuState::Main))
+                (button_system, update_language_button_text)
+                    .run_if(in_state(GameState::MainMenu).or(in_state(GameState::Paused))),
             );
+
+        info!("[Menu] 菜单插件已加载");
     }
 }
 
-fn spawn_main_menu(
+// ============================================================================
+// 系统实现
+// ============================================================================
+
+/// 生成主菜单UI
+fn setup_menu(
     mut commands: Commands,
     assets: Res<GameAssets>,
     current_language: Res<CurrentLanguage>,
+    translation_resources: Res<TranslationResources>,
+    game_progress: Res<GameProgress>,
+    current_state: Res<State<GameState>>,
 ) {
-    let font = assets.font.clone();
+    let state = current_state.get();
+    let is_paused = matches!(state, GameState::Paused);
+    let has_active_game = game_progress.has_active_game;
 
-    commands
+    info!("[Menu] ========== 开始生成菜单UI ==========");
+    info!(
+        "[Menu] 当前状态: {:?}, 有活跃游戏: {}",
+        state, has_active_game
+    );
+
+    // 根容器（全屏，使用绝对定位布局，半透明黑色背景）
+    let root_entity = commands
         .spawn((
-            menu_container_style(),
-            ZIndex(10),
-            MainMenuRoot,
-            Name::new("MainMenu"),
-        ))
-        .with_children(|parent| {
-            // 游戏标题
-            let (text, text_font, text_color) = title_text_style(font.clone());
-            parent.spawn((
-                text,
-                text_font,
-                text_color,
-                LocalizedText::new("menu.title"),
-            ));
-
-            // 垂直间隔
-            parent.spawn(Node {
-                height: Val::Px(40.0),
+            Node {
+                width: Val::Percent(100.0),
+                height: Val::Percent(100.0),
+                position_type: PositionType::Absolute,
                 ..default()
+            },
+            BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.6)), // 60% 不透明度的黑色遮罩
+            MenuRoot,                                          // 标记为菜单根节点
+            Name::new("MenuRoot"),
+        ))
+        .id();
+
+    // 主菜单内容容器（居中）
+    commands.entity(root_entity).with_children(|parent| {
+        // 创建居中的菜单内容
+        parent
+            .spawn(Node {
+                width: Val::Percent(100.0),
+                height: Val::Percent(100.0),
+                justify_content: JustifyContent::Center,
+                align_items: AlignItems::Center,
+                flex_direction: FlexDirection::Column,
+                ..default()
+            })
+            .with_children(|parent| {
+                info!("[Menu] 开始创建子元素...");
+
+                // 标题
+                parent.spawn((
+                    Text::new(translation_resources.get(current_language.language, "menu-title")),
+                    TextFont {
+                        font: assets.font.clone(),
+                        font_size: 80.0,
+                        ..default()
+                    },
+                    TextColor(Color::srgb(0.9, 0.9, 0.9)),
+                    LocalizedText::new("menu-title"),
+                ));
+
+                info!("[Menu] 标题已创建");
+
+                // 按钮容器
+                parent
+                    .spawn(Node {
+                        flex_direction: FlexDirection::Column,
+                        align_items: AlignItems::Center,
+                        row_gap: Val::Px(20.0),
+                        margin: UiRect::top(Val::Px(50.0)),
+                        ..default()
+                    })
+                    .with_children(|button_parent| {
+                        info!("[Menu] 开始创建按钮...");
+
+                        // 辅助宏：生成菜单按钮
+                        macro_rules! add_button {
+                            ($action:expr, $key:expr) => {
+                                button_parent
+                                    .spawn((
+                                        Button,
+                                        Node {
+                                            width: Val::Px(300.0),
+                                            height: Val::Px(65.0),
+                                            justify_content: JustifyContent::Center,
+                                            align_items: AlignItems::Center,
+                                            ..default()
+                                        },
+                                        BackgroundColor(NORMAL_BUTTON),
+                                        $action,
+                                    ))
+                                    .with_child((
+                                        Text::new(
+                                            translation_resources
+                                                .get(current_language.language, $key),
+                                        ),
+                                        TextFont {
+                                            font: assets.font.clone(),
+                                            font_size: 32.0,
+                                            ..default()
+                                        },
+                                        TextColor(Color::srgb(0.9, 0.9, 0.9)),
+                                        LocalizedText::new($key),
+                                    ));
+                            };
+                        }
+
+                        // 根据状态决定显示哪些按钮
+                        if is_paused || has_active_game {
+                            add_button!(MenuButtonAction::Resume, "menu-resume");
+                        }
+
+                        add_button!(MenuButtonAction::NewGame, "menu-new-game");
+                        add_button!(MenuButtonAction::SaveGame, "menu-save-game");
+                        add_button!(MenuButtonAction::Settings, "menu-settings");
+
+                        if is_paused {
+                            add_button!(MenuButtonAction::BackToMainMenu, "menu-back-to-menu");
+                        }
+
+                        add_button!(MenuButtonAction::Quit, "menu-quit");
+
+                        info!("[Menu] 按钮创建完成");
+                    });
             });
 
-            // 开始游戏按钮
-            spawn_button(
-                parent,
-                "menu.play",
-                ButtonAction::StartGame,
-                font.clone(),
-            );
+        // 语言切换按钮（右上角，绝对定位）
+        parent
+            .spawn((
+                Button,
+                Node {
+                    width: Val::Px(120.0),
+                    height: Val::Px(50.0),
+                    position_type: PositionType::Absolute,
+                    top: Val::Px(20.0),
+                    right: Val::Px(20.0),
+                    justify_content: JustifyContent::Center,
+                    align_items: AlignItems::Center,
+                    column_gap: Val::Px(6.0),
+                    ..default()
+                },
+                BackgroundColor(NORMAL_BUTTON),
+                MenuButtonAction::ToggleLanguage,
+                Name::new("LanguageButton"),
+            ))
+            .with_children(|button| {
+                // 地球图标
+                button.spawn((
+                    Text::new("🌐"),
+                    TextFont {
+                        font: assets.font.clone(),
+                        font_size: 24.0,
+                        ..default()
+                    },
+                    TextColor(Color::srgb(0.9, 0.9, 0.9)),
+                ));
 
-            // 设置按钮
-            spawn_button(
-                parent,
-                "menu.settings",
-                ButtonAction::Settings,
-                font.clone(),
-            );
+                // 语言文本（显示切换后的语言）
+                let next_language = current_language.language.toggle();
+                button.spawn((
+                    Text::new(next_language.display_name()),
+                    TextFont {
+                        font: assets.font.clone(),
+                        font_size: 20.0,
+                        ..default()
+                    },
+                    TextColor(Color::srgb(0.9, 0.9, 0.9)),
+                    LanguageButtonText,
+                ));
+            });
 
-            // 退出按钮
-            spawn_button(
-                parent,
-                "menu.quit",
-                ButtonAction::Quit,
-                font.clone(),
-            );
-        });
+        info!("[Menu] 语言切换按钮已创建");
+    });
 
-    // 语言切换按钮（右上角，独立于主容器）
-    commands
-        .spawn((
-            Button,
-            language_button_style(),
-            BackgroundColor(MenuStyle::BUTTON_NORMAL),
-            BorderColor::all(MenuStyle::BUTTON_BORDER),
-            ZIndex(20),
-            ButtonAction::ToggleLanguage,
-            ButtonState::default(),
-            MainMenuRoot,  // 标记为主菜单的一部分，方便一起清理
-            Name::new("LanguageButton"),
-        ))
-        .with_children(|button| {
-            let (text, text_font, text_color) = language_button_text_style(font.clone());
-            button.spawn((
-                text,
-                text_font,
-                text_color,
-                LanguageButtonText,  // 特殊标记，用于更新语言显示
-                Name::new("LanguageButtonText"),
-            ));
-        });
-
-    info!("[UI] Main menu spawned with language: {:?}", current_language.language);
+    info!("[Menu] ========== 主菜单UI生成完成 ==========");
 }
 
-fn despawn_main_menu(
-    mut commands: Commands,
-    query: Query<Entity, With<MainMenuRoot>>,
-) {
-    for entity in query.iter() {
-        commands.entity(entity).despawn();
+/// 隐藏菜单（进入游戏时）
+fn hide_menu(mut menu_query: Query<&mut Visibility, With<MenuRoot>>) {
+    if let Ok(mut visibility) = menu_query.single_mut() {
+        *visibility = Visibility::Hidden;
+        info!("[Menu] 菜单已隐藏");
     }
-
-    info!("[UI] Main menu despawned");
 }
 
-/// 创建按钮的辅助函数
-fn spawn_button(
-    parent: &mut ChildSpawnerCommands,
-    text_key: &str,
-    action: ButtonAction,
-    font: Handle<Font>,
-) {
-    parent
-        .spawn((
-            Button,
-            button_style(),
-            BackgroundColor(MenuStyle::BUTTON_NORMAL),
-            BorderColor::all(MenuStyle::BUTTON_BORDER),
-            ZIndex(10),
-            action,
-            ButtonState::default(),
-            Name::new(format!("Button_{:?}", action)),
-        ))
-        .with_children(|button: &mut ChildSpawnerCommands| {
-            let (button_text, text_font, text_color) = button_text_style(font);
-            button.spawn((
-                button_text,
-                text_font,
-                text_color,
-                LocalizedText::new(text_key),
-            ));
-        });
+/// 清理菜单（退出菜单状态时）
+fn cleanup_menu(mut commands: Commands, menu_query: Query<Entity, With<MenuRoot>>) {
+    for entity in menu_query.iter() {
+        commands.entity(entity).despawn();
+        info!("[Menu] 菜单已清理");
+    }
 }
 
-/// 按钮交互系统（处理悬停和点击视觉效果）
-fn button_interaction_system(
+/// 按钮交互系统
+fn button_system(
     mut interaction_query: Query<
-        (
-            &Interaction,
-            &mut BackgroundColor,
-            &mut ButtonState,
-            &Children,
-        ),
+        (&Interaction, &mut BackgroundColor, &MenuButtonAction),
         (Changed<Interaction>, With<Button>),
     >,
-    mut text_query: Query<&mut TextColor>,
-) {
-    for (interaction, mut bg_color, mut button_state, children) in interaction_query.iter_mut() {
-        // 更新按钮背景颜色
-        *bg_color = match *interaction {
-            Interaction::Pressed => MenuStyle::BUTTON_PRESSED.into(),
-            Interaction::Hovered => MenuStyle::BUTTON_HOVERED.into(),
-            Interaction::None => MenuStyle::BUTTON_NORMAL.into(),
-        };
-
-        // 更新按钮状态
-        button_state.is_hovered = *interaction == Interaction::Hovered;
-
-        // 更新文本颜色
-        for child in children.iter() {
-            if let Ok(mut text_color) = text_query.get_mut(child) {
-                text_color.0 = if button_state.is_hovered {
-                    MenuStyle::TEXT_HOVERED
-                } else {
-                    MenuStyle::TEXT_COLOR
-                };
-            }
-        }
-    }
-}
-
-/// 按钮动作系统（处理按钮点击事件）
-fn button_action_system(
-    interaction_query: Query<(&Interaction, &ButtonAction), (Changed<Interaction>, With<Button>)>,
-    mut game_state: ResMut<NextState<GameState>>,
-    mut menu_state: ResMut<NextState<MenuState>>,
-    mut app_exit: MessageWriter<AppExit>,
+    mut next_state: ResMut<NextState<GameState>>,
+    mut app_exit_events: MessageWriter<AppExit>,
+    mut settings_state: ResMut<NextState<SettingsMenuState>>,
     mut current_language: ResMut<CurrentLanguage>,
+    mut game_progress: ResMut<GameProgress>,
+    mut save_manager: ResMut<SaveManager>,
 ) {
-    for (interaction, action) in interaction_query.iter() {
-        if *interaction == Interaction::Pressed {
-            match action {
-                ButtonAction::StartGame => {
-                    info!("[UI] Start game button pressed");
-                    game_state.set(GameState::Playing);
-                    menu_state.set(MenuState::Disabled);
+    for (interaction, mut color, action) in &mut interaction_query {
+        match *interaction {
+            Interaction::Pressed => {
+                *color = PRESSED_BUTTON.into();
+                match action {
+                    MenuButtonAction::NewGame => {
+                        info!("[Menu] Clicked: NewGame - 开始新游戏");
+                        // TODO: 清空存档，重置游戏状态
+                        game_progress.has_active_game = false;
+                        next_state.set(GameState::Playing);
+                    }
+                    MenuButtonAction::Resume => {
+                        info!("[Menu] Clicked: Resume - 继续游戏");
+                        next_state.set(GameState::Playing);
+                    }
+                    MenuButtonAction::SaveGame => {
+                        info!("[Menu] Clicked: SaveGame - 请求保存游戏");
+                        save_manager.request_save();
+                        // 标记有活跃游戏
+                        game_progress.has_active_game = true;
+                    }
+                    MenuButtonAction::Settings => {
+                        info!("[Menu] Clicked: Settings - 进入设置菜单");
+                        settings_state.set(SettingsMenuState::Main);
+                    }
+                    MenuButtonAction::BackToMainMenu => {
+                        info!("[Menu] Clicked: BackToMainMenu - 返回主菜单");
+                        next_state.set(GameState::MainMenu);
+                    }
+                    MenuButtonAction::Quit => {
+                        info!("[Menu] Clicked: Quit");
+                        app_exit_events.write(AppExit::Success);
+                    }
+                    MenuButtonAction::ToggleLanguage => {
+                        current_language.language = current_language.language.toggle();
+                        info!("[Menu] 语言已切换到: {:?}", current_language.language);
+                    }
                 }
-                ButtonAction::Settings => {
-                    info!("[UI] Settings button pressed");
-                    menu_state.set(MenuState::Settings);
-                }
-                ButtonAction::Quit => {
-                    info!("[UI] Quit button pressed");
-                    app_exit.write(AppExit::Success);
-                }
-                ButtonAction::BackToMenu => {
-                    info!("[UI] Back to menu button pressed");
-                    menu_state.set(MenuState::Main);
-                }
-                ButtonAction::ToggleLanguage => {
-                    current_language.language = current_language.language.toggle();
-                    info!("[UI] Language switched to: {:?}", current_language.language);
-                }
+            }
+            Interaction::Hovered => {
+                *color = HOVERED_BUTTON.into();
+            }
+            Interaction::None => {
+                *color = NORMAL_BUTTON.into();
             }
         }
     }
-}
-
-/// 设置菜单插件
-pub struct SettingsMenuPlugin;
-
-impl Plugin for SettingsMenuPlugin {
-    fn build(&self, app: &mut App) {
-        app
-            .add_systems(OnEnter(MenuState::Settings), spawn_settings_menu)
-            .add_systems(OnExit(MenuState::Settings), despawn_settings_menu)
-            .add_systems(
-                Update,
-                (button_interaction_system, button_action_system)
-                    .run_if(in_state(GameState::MainMenu))
-                    .run_if(in_state(MenuState::Settings))
-            );
-    }
-}
-
-fn spawn_settings_menu(
-    mut commands: Commands,
-    assets: Res<GameAssets>,
-) {
-    let font = assets.font.clone();
-
-    commands
-        .spawn((
-            menu_container_style(),
-            ZIndex(10),
-            SettingsMenuRoot,
-            Name::new("SettingsMenu"),
-        ))
-        .with_children(|parent| {
-            // 设置标题
-            let (mut text, text_font, text_color) = title_text_style(font.clone());
-            text.0 = "设置".to_string();
-            parent.spawn((text, text_font, text_color));
-
-            // 垂直间隔
-            parent.spawn(Node {
-                height: Val::Px(40.0),
-                ..default()
-            });
-
-            // 占位文本（后续可添加具体设置项）
-            let (mut hint_text, hint_font, hint_color) = button_text_style(font.clone());
-            hint_text.0 = "（设置选项待实现）".to_string();
-            parent.spawn((hint_text, hint_font, hint_color));
-
-            // 垂直间隔
-            parent.spawn(Node {
-                height: Val::Px(40.0),
-                ..default()
-            });
-
-            // 返回按钮
-            spawn_button(
-                parent,
-                "返回主菜单",
-                ButtonAction::BackToMenu,
-                font.clone(),
-            );
-        });
-
-    info!("[UI] Settings menu spawned");
-}
-
-fn despawn_settings_menu(
-    mut commands: Commands,
-    query: Query<Entity, With<SettingsMenuRoot>>,
-) {
-    for entity in query.iter() {
-        commands.entity(entity).despawn();
-    }
-
-    info!("[UI] Settings menu despawned");
 }
 
 /// 更新语言按钮文本系统
+/// 显示"下一个语言"（即点击后会切换到的语言）
 fn update_language_button_text(
     current_language: Res<CurrentLanguage>,
     mut text_query: Query<&mut Text, With<LanguageButtonText>>,
@@ -362,7 +356,15 @@ fn update_language_button_text(
         return;
     }
 
+    // 显示切换后的语言
+    let next_language = current_language.language.toggle();
     for mut text in text_query.iter_mut() {
-        **text = current_language.language.display_name().to_string();
+        **text = next_language.display_name().to_string();
     }
+
+    info!(
+        "[Menu] 语言按钮文本已更新，显示下一个语言: {} (当前: {})",
+        next_language.display_name(),
+        current_language.language.display_name()
+    );
 }

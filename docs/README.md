@@ -150,7 +150,7 @@ vigilant-doodle/
 - [x] `input/cursor.rs` - 光标管理
 
 ### 阶段 3：UI 系统 ✅
-- [x] `ui/simple_menu.rs` - 主菜单 + 半透明背景
+- [x] `ui/menu.rs` - 主菜单 + 半透明背景
 - [x] `ui/settings_menu.rs` - 设置菜单
 - [x] `ui/components.rs` - UI 组件
 - [x] `ui/styles.rs` - UI 样式

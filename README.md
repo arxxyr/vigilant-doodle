@@ -132,9 +132,11 @@ cargo run --features dev,inspector
 | bevy_asset_loader | 0.24.0-rc.1 | 资源预加载 |
 | bevy_egui | 0.38.0 | Inspector UI |
 | rand | 0.9.2 | 随机数生成 |
-| bincode | 2.0.1 | 二进制序列化 |
+| bincode | 2.0.1 | 二进制序列化（存档） |
 | aes-gcm | 0.10 | 加密存档 |
 | crc32fast | 1.4 | 校验和计算 |
+| fluent | 0.17.0 | Fluent i18n 框架 |
+| fluent-bundle | 0.16.0 | 翻译资源管理 |
 | serde/serde_json | 1.0 | JSON 序列化 |
 | dirs | 6.0.0 | 系统目录获取 |
 
@@ -144,9 +146,15 @@ cargo run --features dev,inspector
 assets/
 ├── fonts/                        # 字体文件
 │   └── SarasaTermSCNerd/        # 等宽字体（支持中文）
-├── localization/                 # 多语言翻译文件
-│   ├── zh_CN.json               # 中文
-│   └── en_US.json               # 英文
+├── i18n/                         # 多语言翻译文件（Fluent 格式）
+│   ├── zh-Hans/                 # 简体中文
+│   │   ├── main.ftl
+│   │   ├── menu.ftl
+│   │   └── settings.ftl
+│   └── en/                      # 英文
+│       ├── main.ftl
+│       ├── menu.ftl
+│       └── settings.ftl
 ├── model/                        # 3D 模型（GLTF，待添加）
 ├── audio/                        # 音频文件（待添加）
 └── textures/                     # UI 图标（待添加）
@@ -273,10 +281,11 @@ cargo bench
   - ESC 键暂停/继续
   - 暂停菜单 UI
   - 状态保持与恢复
-- 🔧 **翻译打包工具**：多语言资源管理
-  - JSON → 加密二进制格式（.dat）
-  - 异步加载优化
-  - 运行时解密
+- 🌍 **Fluent i18n 系统**：现代化多语言支持
+  - 使用 Mozilla Fluent 框架（行业标准）
+  - 支持参数化翻译、复数形式、性别变化
+  - 异步加载 .ftl 翻译文件
+  - 无需打包或加密，易于翻译协作
 - 🚀 **打包脚本**：跨平台自动化构建
   - Linux 打包脚本（AppImage）
   - Windows 打包脚本（PowerShell）
@@ -286,9 +295,9 @@ cargo bench
   - 修复转弯抖动问题
   - 优化资源加载性能
 - 🌐 **本地化改进**：完善多语言支持
-  - 翻译文件异步加载
-  - 加密二进制格式
-  - 更快的语言切换
+  - 迁移到 Fluent i18n 系统
+  - 支持高级语言特性（参数化、复数）
+  - 更快的语言切换和热重载
 - 📦 **依赖升级**：现代化技术栈
   - bincode 2.0（更好的序列化）
   - 完整的 3D 模型资源系统

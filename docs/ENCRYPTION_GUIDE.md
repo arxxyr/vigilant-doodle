@@ -94,16 +94,21 @@ save_manager.request_load();
 
 位置：`crates/game/src/core/localization.rs:262`
 
-### 方式 2：加密翻译文件（可选）
+### 方式 2：加密翻译文件（已弃用 ⚠️）
 
-如果需要运行时加载翻译（例如支持 MOD 或动态语言包），可以使用加密的 `.lang` 文件。
+> **注意**：此方法已被 **Fluent i18n 系统**替代。
+> 项目现在使用标准的 `.ftl` 翻译文件（`assets/i18n/`），无需加密或打包工具。
+> 详情请参阅 `crates/core/src/localization.rs`。
 
-#### 步骤 1：打包翻译文件
+~~如果需要运行时加载翻译（例如支持 MOD 或动态语言包），可以使用加密的 `.lang` 文件。~~
 
-运行打包工具：
+~~#### 步骤 1：打包翻译文件~~
+
+~~运行打包工具：~~
 
 ```bash
-cargo run --bin pack_translations
+# 此工具已删除（pack_translations）
+# cargo run --bin pack_translations
 ```
 
 输出示例：
@@ -191,9 +196,9 @@ const ENCRYPTION_KEY: &[u8; 32] = b"YourGame_SecretKey_2025_v1.0.!!";
                                  // 必须正好 32 个字符
 ```
 
-2. 更新两个文件中的密钥：
+2. 更新密钥文件：
    - `crates/game/src/core/crypto.rs:20`
-   - `crates/game/src/bin/pack_translations.rs:62`
+   - ~~`crates/game/src/bin/pack_translations.rs:62`（已删除）~~
 
 3. 重新编译游戏
 
@@ -364,10 +369,10 @@ A: 可能，但非常困难：
 
 ## 源码位置
 
-- **加密模块**：`crates/game/src/core/crypto.rs`
+- **加密模块**：`crates/game/src/core/crypto.rs`（仅用于存档加密）
 - **存档系统**：`crates/game/src/core/save.rs`
-- **翻译系统**：`crates/game/src/core/localization.rs`
-- **打包工具**：`crates/game/src/bin/pack_translations.rs`
+- **翻译系统**：`crates/core/src/localization.rs`（使用 Fluent，无加密）
+- ~~**打包工具**：`crates/game/src/bin/pack_translations.rs`（已删除）~~
 
 ---
 

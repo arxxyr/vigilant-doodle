@@ -134,14 +134,14 @@ fn setup_main_settings_menu(
         .with_children(|parent| {
             // 标题
             parent.spawn((
-                Text::new(translation_resources.get(current_language.language, "settings.title")),
+                Text::new(translation_resources.get(current_language.language, "settings-title")),
                 TextFont {
                     font: assets.font.clone(),
                     font_size: 60.0,
                     ..default()
                 },
                 TextColor(Color::srgb(0.9, 0.9, 0.9)),
-                LocalizedText::new("settings.title"),
+                LocalizedText::new("settings-title"),
             ));
 
             // 分类按钮容器
@@ -171,7 +171,7 @@ fn setup_main_settings_menu(
                         .with_child((
                             Text::new(
                                 translation_resources
-                                    .get(current_language.language, "settings.appearance"),
+                                    .get(current_language.language, "settings-appearance"),
                             ),
                             TextFont {
                                 font: assets.font.clone(),
@@ -179,7 +179,7 @@ fn setup_main_settings_menu(
                                 ..default()
                             },
                             TextColor(Color::srgb(0.9, 0.9, 0.9)),
-                            LocalizedText::new("settings.appearance"),
+                            LocalizedText::new("settings-appearance"),
                         ));
 
                     // 图形按钮
@@ -199,7 +199,7 @@ fn setup_main_settings_menu(
                         .with_child((
                             Text::new(
                                 translation_resources
-                                    .get(current_language.language, "settings.graphics"),
+                                    .get(current_language.language, "settings-graphics"),
                             ),
                             TextFont {
                                 font: assets.font.clone(),
@@ -207,7 +207,7 @@ fn setup_main_settings_menu(
                                 ..default()
                             },
                             TextColor(Color::srgb(0.9, 0.9, 0.9)),
-                            LocalizedText::new("settings.graphics"),
+                            LocalizedText::new("settings-graphics"),
                         ));
 
                     // 声音按钮
@@ -227,7 +227,7 @@ fn setup_main_settings_menu(
                         .with_child((
                             Text::new(
                                 translation_resources
-                                    .get(current_language.language, "settings.audio"),
+                                    .get(current_language.language, "settings-audio"),
                             ),
                             TextFont {
                                 font: assets.font.clone(),
@@ -235,7 +235,7 @@ fn setup_main_settings_menu(
                                 ..default()
                             },
                             TextColor(Color::srgb(0.9, 0.9, 0.9)),
-                            LocalizedText::new("settings.audio"),
+                            LocalizedText::new("settings-audio"),
                         ));
 
                     // 控制按钮
@@ -255,7 +255,7 @@ fn setup_main_settings_menu(
                         .with_child((
                             Text::new(
                                 translation_resources
-                                    .get(current_language.language, "settings.controls"),
+                                    .get(current_language.language, "settings-controls"),
                             ),
                             TextFont {
                                 font: assets.font.clone(),
@@ -263,7 +263,7 @@ fn setup_main_settings_menu(
                                 ..default()
                             },
                             TextColor(Color::srgb(0.9, 0.9, 0.9)),
-                            LocalizedText::new("settings.controls"),
+                            LocalizedText::new("settings-controls"),
                         ));
 
                     // 游戏性按钮
@@ -283,7 +283,7 @@ fn setup_main_settings_menu(
                         .with_child((
                             Text::new(
                                 translation_resources
-                                    .get(current_language.language, "settings.gameplay"),
+                                    .get(current_language.language, "settings-gameplay"),
                             ),
                             TextFont {
                                 font: assets.font.clone(),
@@ -291,7 +291,7 @@ fn setup_main_settings_menu(
                                 ..default()
                             },
                             TextColor(Color::srgb(0.9, 0.9, 0.9)),
-                            LocalizedText::new("settings.gameplay"),
+                            LocalizedText::new("settings-gameplay"),
                         ));
 
                     // 返回按钮
@@ -311,7 +311,7 @@ fn setup_main_settings_menu(
                         .with_child((
                             Text::new(
                                 translation_resources
-                                    .get(current_language.language, "settings.back"),
+                                    .get(current_language.language, "settings-back"),
                             ),
                             TextFont {
                                 font: assets.font.clone(),
@@ -319,7 +319,7 @@ fn setup_main_settings_menu(
                                 ..default()
                             },
                             TextColor(Color::srgb(0.9, 0.9, 0.9)),
-                            LocalizedText::new("settings.back"),
+                            LocalizedText::new("settings-back"),
                         ));
                 });
         });
@@ -354,7 +354,7 @@ fn setup_appearance_settings(
             // 标题
             parent.spawn((
                 Text::new(
-                    translation_resources.get(current_language.language, "settings.appearance"),
+                    translation_resources.get(current_language.language, "settings-appearance"),
                 ),
                 TextFont {
                     font: assets.font.clone(),
@@ -362,7 +362,7 @@ fn setup_appearance_settings(
                     ..default()
                 },
                 TextColor(Color::srgb(0.9, 0.9, 0.9)),
-                LocalizedText::new("settings.appearance"),
+                LocalizedText::new("settings-appearance"),
             ));
 
             // 选项容器
@@ -379,7 +379,7 @@ fn setup_appearance_settings(
                     options_parent.spawn((
                         Text::new(
                             translation_resources
-                                .get(current_language.language, "settings.language"),
+                                .get(current_language.language, "settings-language"),
                         ),
                         TextFont {
                             font: assets.font.clone(),
@@ -387,7 +387,7 @@ fn setup_appearance_settings(
                             ..default()
                         },
                         TextColor(Color::srgb(0.9, 0.9, 0.9)),
-                        LocalizedText::new("settings.language"),
+                        LocalizedText::new("settings-language"),
                         Node {
                             margin: UiRect::top(Val::Px(20.0)),
                             ..default()
@@ -414,7 +414,7 @@ fn setup_appearance_settings(
                                         ..default()
                                     },
                                     BackgroundColor(
-                                        if current_language.language == Language::Chinese {
+                                        if current_language.language == Language::SimplifiedChinese {
                                             PRESSED_BUTTON
                                         } else {
                                             NORMAL_BUTTON
@@ -425,7 +425,7 @@ fn setup_appearance_settings(
                                 .with_child((
                                     Text::new(translation_resources.get(
                                         current_language.language,
-                                        "settings.language_chinese",
+                                        "settings-language-chinese",
                                     )),
                                     TextFont {
                                         font: assets.font.clone(),
@@ -433,7 +433,7 @@ fn setup_appearance_settings(
                                         ..default()
                                     },
                                     TextColor(Color::srgb(0.9, 0.9, 0.9)),
-                                    LocalizedText::new("settings.language_chinese"),
+                                    LocalizedText::new("settings-language-chinese"),
                                 ));
 
                             // 英文按钮
@@ -459,7 +459,7 @@ fn setup_appearance_settings(
                                 .with_child((
                                     Text::new(translation_resources.get(
                                         current_language.language,
-                                        "settings.language_english",
+                                        "settings-language-english",
                                     )),
                                     TextFont {
                                         font: assets.font.clone(),
@@ -467,7 +467,7 @@ fn setup_appearance_settings(
                                         ..default()
                                     },
                                     TextColor(Color::srgb(0.9, 0.9, 0.9)),
-                                    LocalizedText::new("settings.language_english"),
+                                    LocalizedText::new("settings-language-english"),
                                 ));
                         });
 
@@ -489,7 +489,7 @@ fn setup_appearance_settings(
                         .with_child((
                             Text::new(
                                 translation_resources
-                                    .get(current_language.language, "settings.back"),
+                                    .get(current_language.language, "settings-back"),
                             ),
                             TextFont {
                                 font: assets.font.clone(),
@@ -497,7 +497,7 @@ fn setup_appearance_settings(
                                 ..default()
                             },
                             TextColor(Color::srgb(0.9, 0.9, 0.9)),
-                            LocalizedText::new("settings.back"),
+                            LocalizedText::new("settings-back"),
                         ));
                 });
         });
@@ -552,7 +552,7 @@ fn settings_button_system(
                     },
                     SettingsButtonAction::LanguageChinese => {
                         info!("[SettingsMenu] 切换到中文");
-                        current_language.language = Language::Chinese;
+                        current_language.language = Language::SimplifiedChinese;
                     }
                     SettingsButtonAction::LanguageEnglish => {
                         info!("[SettingsMenu] 切换到英文");

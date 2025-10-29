@@ -43,7 +43,7 @@
 - [x] 验证：玩家移动、敌人追逐正常
 
 ### 阶段 4：实现 UI 系统（已完成 ✅）
-- [x] 实现 `ui/simple_menu.rs`（主菜单 + 模糊背景）
+- [x] 实现 `ui/menu.rs`（主菜单 + 半透明背景）
 - [x] 实现 `ui/settings_menu.rs`（设置菜单）
 - [x] 实现 `ui/components.rs`（UI 组件）
 - [x] 实现 `ui/styles.rs`（UI 样式）
@@ -121,7 +121,7 @@ crates/game/
     │
     ├── ui/                         # UI 系统
     │   ├── mod.rs
-    │   ├── simple_menu.rs          # 主菜单 + 背景（~350 行）✅
+    │   ├── menu.rs                 # 主菜单 + 背景（~350 行）✅
     │   ├── settings_menu.rs        # 设置菜单（~150 行）✅
     │   ├── components.rs           # UI 组件（~40 行）✅
     │   └── styles.rs               # UI 样式（~100 行）✅

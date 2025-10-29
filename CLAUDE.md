@@ -13,7 +13,7 @@
 - **视角**：斜向俯视 45°
 - **平台**：Windows / Linux / macOS / Web
 - **存档**：加密存档（AES-256-GCM + bincode 2.0）
-- **本地化**：异步加载翻译文件，支持加密二进制格式
+- **本地化**：Fluent i18n 系统，支持中文/English 动态切换
 
 ---
 
@@ -152,13 +152,14 @@ cargo fmt --all
 cargo clippy --workspace -- -D warnings
 ```
 
-### 翻译打包工具
+### 翻译系统
+项目使用 **Fluent i18n** 系统进行多语言支持：
 ```bash
-# 将 JSON 翻译文件转为加密二进制格式
-cargo run --bin pack_translations
+# 翻译文件位置：
+assets/i18n/zh-Hans/*.ftl  # 简体中文
+assets/i18n/en/*.ftl       # 英文
 
-# 输入：assets/localization/*.json
-# 输出：assets/localization/*.dat
+# 无需打包工具，直接编辑 .ftl 文件即可
 ```
 
 ---
@@ -284,23 +285,24 @@ pub struct SaveData {
 3. **校验**：计算 CRC32 校验和
 4. **存储**：写入 `save.dat` 文件
 
-### 翻译打包工具
-定义在 `crates/game/src/bin/pack_translations.rs`：
+### 翻译系统
+项目使用 **Fluent i18n** 系统（Mozilla 的本地化框架）：
 
-```bash
-# 运行工具
-cargo run --bin pack_translations
-
-# 工作流程：
-# 1. 读取 assets/localization/*.json
-# 2. 使用 AES-256-GCM 加密
-# 3. 输出 assets/localization/*.dat
+**文件格式**：
+```ftl
+# assets/i18n/zh-Hans/menu.ftl
+menu-title = 游戏标题
+menu-new-game = 新游戏
+menu-settings = 设置
 ```
 
-**加密原因**：
-- 防止用户直接修改翻译文件
-- 减小文件体积（二进制格式）
-- 加快加载速度（无需 JSON 解析）
+**优势**：
+- 支持参数化翻译：`hello = 你好，{ $name }！`
+- 支持复数形式、性别变化等高级语言特性
+- 无需打包或加密，直接加载 .ftl 文件
+- 符合行业标准，易于翻译协作
+
+**实现位置**：`crates/core/src/localization.rs`
 
 ---
 

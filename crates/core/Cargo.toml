@@ -16,3 +16,9 @@ dirs = { workspace = true }
 bincode = { workspace = true }
 crc32fast = { workspace = true }
 aes-gcm = { workspace = true }
+
+# Fluent i18n
+fluent = { workspace = true }
+fluent-bundle = { workspace = true }
+unic-langid = { workspace = true }
+intl-memoizer = { workspace = true }
