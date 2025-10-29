@@ -7,4 +7,4 @@
 pub mod loader;
 
 // 重新导出常用类型
-pub use loader::{AssetLoaderPlugin, GameAssets};
+pub use loader::{load_assets, AssetLoaderPlugin, GameAssets};

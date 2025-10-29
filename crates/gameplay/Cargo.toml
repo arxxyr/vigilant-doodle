@@ -12,6 +12,7 @@ crate-type = ["rlib"]
 bevy = { workspace = true }
 rand = { workspace = true }
 vigilant-doodle-core = { path = "../core" }
+vigilant-doodle-assets = { path = "../assets" }
 vigilant-doodle-input = { path = "../input" }
 vigilant-doodle-camera = { path = "../camera" }
 vigilant-doodle-world = { path = "../world" }

@@ -1,6 +1,7 @@
-//! 简单菜单系统（基于 Bevy 官方示例）
+//! 游戏主菜单系统
 //!
-//! 参考: https://github.com/bevyengine/bevy/blob/main/examples/games/game_menu.rs
+//! 提供完整的菜单功能，包括新游戏、继续、存档、设置、语言切换等。
+//! 支持主菜单和暂停菜单两种模式。
 
 use super::settings_menu::SettingsMenuState;
 use vigilant_doodle_assets::GameAssets;
@@ -45,9 +46,9 @@ struct LanguageButtonText;
 // 插件定义
 // ============================================================================
 
-pub struct SimpleMenuPlugin;
+pub struct MenuPlugin;
 
-impl Plugin for SimpleMenuPlugin {
+impl Plugin for MenuPlugin {
     fn build(&self, app: &mut App) {
         app
             // 进入主菜单时生成UI
@@ -66,7 +67,7 @@ impl Plugin for SimpleMenuPlugin {
                     .run_if(in_state(GameState::MainMenu).or(in_state(GameState::Paused))),
             );
 
-        info!("[SimpleMenu] 菜单插件已加载");
+        info!("[Menu] 菜单插件已加载");
     }
 }
 
@@ -87,9 +88,9 @@ fn setup_menu(
     let is_paused = matches!(state, GameState::Paused);
     let has_active_game = game_progress.has_active_game;
 
-    info!("[SimpleMenu] ========== 开始生成菜单UI ==========");
+    info!("[Menu] ========== 开始生成菜单UI ==========");
     info!(
-        "[SimpleMenu] 当前状态: {:?}, 有活跃游戏: {}",
+        "[Menu] 当前状态: {:?}, 有活跃游戏: {}",
         state, has_active_game
     );
 
@@ -121,7 +122,7 @@ fn setup_menu(
                 ..default()
             })
             .with_children(|parent| {
-                info!("[SimpleMenu] 开始创建子元素...");
+                info!("[Menu] 开始创建子元素...");
 
                 // 标题
                 parent.spawn((
@@ -135,7 +136,7 @@ fn setup_menu(
                     LocalizedText::new("menu.title"),
                 ));
 
-                info!("[SimpleMenu] 标题已创建");
+                info!("[Menu] 标题已创建");
 
                 // 按钮容器
                 parent
@@ -147,7 +148,7 @@ fn setup_menu(
                         ..default()
                     })
                     .with_children(|button_parent| {
-                        info!("[SimpleMenu] 开始创建按钮...");
+                        info!("[Menu] 开始创建按钮...");
 
                         // 辅助宏：生成菜单按钮
                         macro_rules! add_button {
@@ -196,7 +197,7 @@ fn setup_menu(
 
                         add_button!(MenuButtonAction::Quit, "menu.quit");
 
-                        info!("[SimpleMenu] 按钮创建完成");
+                        info!("[Menu] 按钮创建完成");
                     });
             });
 
@@ -245,17 +246,17 @@ fn setup_menu(
                 ));
             });
 
-        info!("[SimpleMenu] 语言切换按钮已创建");
+        info!("[Menu] 语言切换按钮已创建");
     });
 
-    info!("[SimpleMenu] ========== 主菜单UI生成完成 ==========");
+    info!("[Menu] ========== 主菜单UI生成完成 ==========");
 }
 
 /// 隐藏菜单（进入游戏时）
 fn hide_menu(mut menu_query: Query<&mut Visibility, With<MenuRoot>>) {
     if let Ok(mut visibility) = menu_query.single_mut() {
         *visibility = Visibility::Hidden;
-        info!("[SimpleMenu] 菜单已隐藏");
+        info!("[Menu] 菜单已隐藏");
     }
 }
 
@@ -263,7 +264,7 @@ fn hide_menu(mut menu_query: Query<&mut Visibility, With<MenuRoot>>) {
 fn cleanup_menu(mut commands: Commands, menu_query: Query<Entity, With<MenuRoot>>) {
     for entity in menu_query.iter() {
         commands.entity(entity).despawn();
-        info!("[SimpleMenu] 菜单已清理");
+        info!("[Menu] 菜单已清理");
     }
 }
 
@@ -286,36 +287,36 @@ fn button_system(
                 *color = PRESSED_BUTTON.into();
                 match action {
                     MenuButtonAction::NewGame => {
-                        info!("[SimpleMenu] Clicked: NewGame - 开始新游戏");
+                        info!("[Menu] Clicked: NewGame - 开始新游戏");
                         // TODO: 清空存档，重置游戏状态
                         game_progress.has_active_game = false;
                         next_state.set(GameState::Playing);
                     }
                     MenuButtonAction::Resume => {
-                        info!("[SimpleMenu] Clicked: Resume - 继续游戏");
+                        info!("[Menu] Clicked: Resume - 继续游戏");
                         next_state.set(GameState::Playing);
                     }
                     MenuButtonAction::SaveGame => {
-                        info!("[SimpleMenu] Clicked: SaveGame - 请求保存游戏");
+                        info!("[Menu] Clicked: SaveGame - 请求保存游戏");
                         save_manager.request_save();
                         // 标记有活跃游戏
                         game_progress.has_active_game = true;
                     }
                     MenuButtonAction::Settings => {
-                        info!("[SimpleMenu] Clicked: Settings - 进入设置菜单");
+                        info!("[Menu] Clicked: Settings - 进入设置菜单");
                         settings_state.set(SettingsMenuState::Main);
                     }
                     MenuButtonAction::BackToMainMenu => {
-                        info!("[SimpleMenu] Clicked: BackToMainMenu - 返回主菜单");
+                        info!("[Menu] Clicked: BackToMainMenu - 返回主菜单");
                         next_state.set(GameState::MainMenu);
                     }
                     MenuButtonAction::Quit => {
-                        info!("[SimpleMenu] Clicked: Quit");
+                        info!("[Menu] Clicked: Quit");
                         app_exit_events.write(AppExit::Success);
                     }
                     MenuButtonAction::ToggleLanguage => {
                         current_language.language = current_language.language.toggle();
-                        info!("[SimpleMenu] 语言已切换到: {:?}", current_language.language);
+                        info!("[Menu] 语言已切换到: {:?}", current_language.language);
                     }
                 }
             }
@@ -346,7 +347,7 @@ fn update_language_button_text(
     }
 
     info!(
-        "[SimpleMenu] 语言按钮文本已更新，显示下一个语言: {} (当前: {})",
+        "[Menu] 语言按钮文本已更新，显示下一个语言: {} (当前: {})",
         next_language.display_name(),
         current_language.language.display_name()
     );

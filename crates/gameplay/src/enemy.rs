@@ -5,6 +5,7 @@
 
 use bevy::prelude::*;
 
+use vigilant_doodle_assets::GameAssets;
 use vigilant_doodle_core::state::GameState;
 use crate::movement::CollisionRadius;
 
@@ -45,15 +46,17 @@ pub struct EnemyPlugin;
 
 impl Plugin for EnemyPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(OnEnter(GameState::AssetLoading), spawn_enemies);
+        app.add_systems(
+            OnEnter(GameState::AssetLoading),
+            spawn_enemies.after(vigilant_doodle_assets::load_assets),
+        );
     }
 }
 
 /// 生成敌人系统
 fn spawn_enemies(
     mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
+    assets: Res<GameAssets>,
 ) {
     use rand::Rng;
     let mut rng = rand::rng();
@@ -66,13 +69,9 @@ fn spawn_enemies(
         let z = rng.random_range(-30.0..30.0);
 
         commands.spawn((
-            // 渲染组件
-            Mesh3d(meshes.add(Capsule3d::new(0.4, 1.0))),
-            MeshMaterial3d(materials.add(StandardMaterial {
-                base_color: Color::srgb(0.8, 0.2, 0.2),
-                ..default()
-            })),
-            Transform::from_xyz(x, 0.5, z),
+            // 使用 glb 模型
+            SceneRoot(assets.enemy_model.clone()),
+            Transform::from_xyz(x, 0.0, z),
             // 敌人标记
             Enemy,
             // 敌人属性
@@ -87,7 +86,7 @@ fn spawn_enemies(
         debug!("[Enemy] 生成敌人 {} at ({:.1}, {:.1})", i, x, z);
     }
 
-    info!("[Enemy] 敌人生成完成（共 3 个）");
+    info!("[Enemy] 敌人生成完成（共 3 个，使用模型）");
 }
 
 #[cfg(test)]

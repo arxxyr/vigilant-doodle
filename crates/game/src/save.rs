@@ -13,7 +13,7 @@ use vigilant_doodle_core::save::SaveManager;
 // ============================================================================
 
 /// 存档数据
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, bincode::Encode, bincode::Decode)]
 pub struct SaveData {
     /// 存档版本
     pub version: u32,
@@ -28,7 +28,7 @@ pub struct SaveData {
 }
 
 /// 玩家存档数据
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, bincode::Encode, bincode::Decode)]
 pub struct PlayerSaveData {
     pub position: [f32; 3],
     pub rotation: [f32; 4], // 四元数
@@ -36,7 +36,7 @@ pub struct PlayerSaveData {
 }
 
 /// 敌人存档数据
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, bincode::Encode, bincode::Decode)]
 pub struct EnemySaveData {
     pub position: [f32; 3],
     pub rotation: [f32; 4],
@@ -148,8 +148,8 @@ fn handle_save_request(
     // 保存到文件（二进制加密格式）
     let save_path = SaveManager::get_save_path(save_manager.current_slot);
 
-    // 序列化为二进制
-    let serialized = match bincode::serialize(&save_data) {
+    // 序列化为二进制（bincode 2.0 API）
+    let serialized = match bincode::encode_to_vec(&save_data, bincode::config::standard()) {
         Ok(data) => data,
         Err(e) => {
             error!("[SaveManager] 序列化失败: {}", e);
@@ -219,8 +219,8 @@ fn handle_load_request(
         }
     };
 
-    // 反序列化
-    let save_data: SaveData = match bincode::deserialize(&decrypted) {
+    // 反序列化（bincode 2.0 API）
+    let (save_data, _): (SaveData, _) = match bincode::decode_from_slice(&decrypted, bincode::config::standard()) {
         Ok(data) => data,
         Err(e) => {
             error!("[SaveManager] 解析存档失败: {}", e);

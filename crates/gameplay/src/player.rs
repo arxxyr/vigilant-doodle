@@ -1,3 +1,4 @@
+use vigilant_doodle_assets::GameAssets;
 use vigilant_doodle_camera::components::CameraTarget;
 use vigilant_doodle_core::state::GameState;
 use crate::movement::CollisionRadius;
@@ -19,28 +20,26 @@ pub struct PlayerPlugin;
 
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(OnEnter(GameState::AssetLoading), spawn_player)
+        app.add_systems(
+                OnEnter(GameState::AssetLoading),
+                spawn_player.after(vigilant_doodle_assets::load_assets),
+            )
             .add_systems(Update, player_movement.run_if(in_state(GameState::Playing)));
     }
 }
 
 fn spawn_player(
     mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
+    assets: Res<GameAssets>,
 ) {
-    // 使用简单的胶囊体作为玩家（暂时没有模型文件）
+    // 使用 glb 模型作为玩家
     commands
         .spawn((
-            Mesh3d(meshes.add(Capsule3d::new(0.4, 1.0))),
-            MeshMaterial3d(materials.add(StandardMaterial {
-                base_color: Color::srgb(0.3, 0.5, 0.8),
-                ..default()
-            })),
-            Transform::from_xyz(0.0, 0.5, 0.0),
+            SceneRoot(assets.player_model.clone()),
+            Transform::from_xyz(0.0, 0.0, 0.0),
             Player::default(),
             CameraTarget,              // 标记为相机跟随目标
-            CollisionRadius::new(0.6), // 碰撞半径略大于胶囊体半径（0.4）以提供缓冲
+            CollisionRadius::new(0.6), // 碰撞半径
             Name::new("Player"),
         ))
         .with_children(|parent| {
@@ -60,7 +59,7 @@ fn spawn_player(
             ));
         });
 
-    info!("[Player] Player spawned");
+    info!("[Player] Player spawned with model");
 }
 
 fn player_movement(

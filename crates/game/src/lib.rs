@@ -44,7 +44,7 @@ use vigilant_doodle_gameplay::{EnemyPlugin, MovementPlugin, PlayerPlugin};
 use vigilant_doodle_ai::EnemyAIPlugin;
 
 // UI 系统
-use vigilant_doodle_ui::{SettingsMenuPlugin, SimpleMenuPlugin};
+use vigilant_doodle_ui::{MenuPlugin, SettingsMenuPlugin};
 
 // ============================================================================
 // 游戏主插件
@@ -77,7 +77,7 @@ impl Plugin for GamePlugin {
             // 8. 输入系统（键盘、鼠标、光标）
             .add_plugins((InputPlugin, CursorPlugin))
             // 9. UI系统（主菜单、设置菜单）
-            .add_plugins((SimpleMenuPlugin, SettingsMenuPlugin));
+            .add_plugins((MenuPlugin, SettingsMenuPlugin));
 
         // Inspector 工具（可选启用）
         #[cfg(feature = "inspector")]

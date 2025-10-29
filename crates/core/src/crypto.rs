@@ -30,7 +30,7 @@ const NONCE_SIZE: usize = 12;
 // ============================================================================
 
 /// 加密文件格式（AES-256-GCM）
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, bincode::Encode, bincode::Decode)]
 struct EncryptedFile {
     /// 魔数（用于验证文件格式）
     magic: u32,
@@ -88,8 +88,8 @@ pub fn encrypt(data: &[u8]) -> Result<Vec<u8>, io::Error> {
         data: encrypted_data,
     };
 
-    // 序列化为二进制
-    bincode::serialize(&encrypted_file)
+    // 序列化为二进制（bincode 2.0 API）
+    bincode::encode_to_vec(&encrypted_file, bincode::config::standard())
         .map_err(|e| io::Error::new(ErrorKind::InvalidData, e.to_string()))
 }
 
@@ -111,9 +111,10 @@ pub fn encrypt(data: &[u8]) -> Result<Vec<u8>, io::Error> {
 /// - 如果文件被篡改，解密会失败
 /// - 无需额外的校验和
 pub fn decrypt(encrypted_data: &[u8]) -> Result<Vec<u8>, io::Error> {
-    // 反序列化
-    let encrypted_file: EncryptedFile = bincode::deserialize(encrypted_data)
-        .map_err(|e| io::Error::new(ErrorKind::InvalidData, format!("解密失败: {}", e)))?;
+    // 反序列化（bincode 2.0 API）
+    let (encrypted_file, _): (EncryptedFile, _) =
+        bincode::decode_from_slice(encrypted_data, bincode::config::standard())
+            .map_err(|e| io::Error::new(ErrorKind::InvalidData, format!("解密失败: {}", e)))?;
 
     // 验证魔数
     if encrypted_file.magic != MAGIC_NUMBER {
