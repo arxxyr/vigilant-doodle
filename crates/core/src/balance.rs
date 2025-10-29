@@ -119,21 +119,25 @@ pub struct BalancePlugin;
 
 impl Plugin for BalancePlugin {
     fn build(&self, app: &mut App) {
+        // 立即插入默认配置作为后备（保证资源始终存在）
+        app.insert_resource(BalanceConfig::default());
+
+        // 在 Startup 阶段尝试从文件加载配置
         app.add_systems(Startup, load_balance_config);
     }
 }
 
 /// 加载平衡配置系统
-fn load_balance_config(mut commands: Commands) {
+fn load_balance_config(mut config: ResMut<BalanceConfig>) {
     // 尝试从文件加载配置
-    let config = match load_balance_from_file() {
-        Ok(config) => {
+    match load_balance_from_file() {
+        Ok(loaded_config) => {
             info!("[Balance] 成功加载平衡配置文件");
-            config
+            *config = loaded_config;
         }
         Err(e) => {
             warn!("[Balance] 无法加载平衡配置文件，使用默认值: {}", e);
-            BalanceConfig::default()
+            // config 已经是默认值，无需修改
         }
     };
 
@@ -144,8 +148,6 @@ fn load_balance_config(mut commands: Commands) {
         "[Balance] 敌人检测范围: {}",
         config.enemy.detection.detection_range
     );
-
-    commands.insert_resource(config);
 }
 
 /// 从文件加载平衡配置
