@@ -242,7 +242,7 @@ fn load_translations(
     info!("[Localization] 开始加载翻译文件...");
 
     // 加载中文翻译
-    if let Some(zh_bytes) = asset_server
+    if let Some(_zh_bytes) = asset_server
         .load_untyped(Language::Chinese.file_path())
         .path()
         .as_ref()

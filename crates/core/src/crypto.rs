@@ -69,7 +69,7 @@ pub fn encrypt(data: &[u8]) -> Result<Vec<u8>, io::Error> {
     let mut nonce_bytes = [0u8; NONCE_SIZE];
     use aes_gcm::aead::rand_core::RngCore;
     OsRng.fill_bytes(&mut nonce_bytes);
-    let nonce = Nonce::from_slice(&nonce_bytes);
+    let nonce = Nonce::from(nonce_bytes);
 
     // 创建 AES-256-GCM 加密器
     let cipher = Aes256Gcm::new_from_slice(ENCRYPTION_KEY)
@@ -77,7 +77,7 @@ pub fn encrypt(data: &[u8]) -> Result<Vec<u8>, io::Error> {
 
     // 加密数据
     let encrypted_data = cipher
-        .encrypt(nonce, data)
+        .encrypt(&nonce, data)
         .map_err(|e| io::Error::new(ErrorKind::InvalidData, format!("加密失败: {}", e)))?;
 
     // 构建加密文件
@@ -143,9 +143,9 @@ pub fn decrypt(encrypted_data: &[u8]) -> Result<Vec<u8>, io::Error> {
         .map_err(|e| io::Error::new(ErrorKind::InvalidInput, format!("密钥错误: {}", e)))?;
 
     // 解密数据（自动验证完整性）
-    let nonce = Nonce::from_slice(&encrypted_file.nonce);
+    let nonce = Nonce::from(encrypted_file.nonce);
     let decrypted_data = cipher
-        .decrypt(nonce, encrypted_file.data.as_ref())
+        .decrypt(&nonce, encrypted_file.data.as_ref())
         .map_err(|e| {
             io::Error::new(
                 ErrorKind::InvalidData,

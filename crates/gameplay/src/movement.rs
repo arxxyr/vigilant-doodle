@@ -52,8 +52,8 @@ fn separate_entities(
 
     while let Some(
         [
-            (entity_a, mut transform_a, radius_a),
-            (entity_b, mut transform_b, radius_b),
+            (_entity_a, mut transform_a, radius_a),
+            (_entity_b, mut transform_b, radius_b),
         ],
     ) = combinations.fetch_next()
     {

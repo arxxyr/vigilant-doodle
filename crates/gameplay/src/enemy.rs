@@ -19,13 +19,13 @@ pub struct Enemy;
 ///
 /// 存储敌人的基础属性（生命值、攻击力等）
 #[derive(Component)]
+#[allow(dead_code)] // TODO: 未来实现战斗系统时会使用
 pub struct EnemyStats {
     /// 最大生命值
     pub max_health: f32,
     /// 当前生命值
     pub current_health: f32,
     /// 攻击力（未来扩展）
-    #[allow(dead_code)]
     pub attack_power: f32,
 }
 
